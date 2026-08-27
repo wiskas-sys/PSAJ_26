@@ -1,0 +1,4 @@
+-- Data demonstrasi, bukan inventaris nyata DIAN MOTOR.
+insert into public.categories(name,description) values ('Oli','Pelumas mesin dan transmisi'),('Sparepart','Suku cadang kendaraan'),('Ban','Ban kendaraan'),('Kelistrikan','Komponen listrik'),('Mesin','Komponen mesin'),('Servis','Jasa bengkel') on conflict do nothing;
+insert into public.products(code,name,category_id,purchase_price,selling_price,stock,minimum_stock,unit) select 'OLI-001','Oli Mesin MPX 1 0.8L',id,47000,58000,24,10,'Botol' from public.categories where name='Oli' on conflict do nothing;
+insert into public.products(code,name,category_id,purchase_price,selling_price,stock,minimum_stock,unit) select 'REM-014','Kampas Rem Depan Vario',id,52000,68000,4,5,'Set' from public.categories where name='Sparepart' on conflict do nothing;
