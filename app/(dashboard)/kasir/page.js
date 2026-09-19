@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Minus, Plus, Search, ShoppingCart, Trash2, Zap } from 'lucide-react';
+import { CheckCircle2, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { products, rupiah } from '@/lib/demo-data';
 import { PageHeader } from '@/components/page-header';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ReceiptSheet } from '@/components/receipt-sheet';
 
 const categories = ['Semua', ...[...new Set(products.map(p => p.category))]];
 
@@ -30,6 +31,7 @@ export default function PosPage() {
     const [method, setMethod] = useState('Tunai');
     const [customer, setCustomer] = useState('umum');
     const [gwOrderId, setGwOrderId] = useState(null);
+    const [showStruk, setShowStruk] = useState(false);
     const shown = useMemo(() => products.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category]);
     const subtotal = cart.reduce((s, i) => s + i.product.sellingPrice * i.qty, 0);
     const total = Math.max(0, subtotal - discount);
@@ -86,14 +88,13 @@ export default function PosPage() {
         return toast.error('Keranjang masih kosong.'); const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY); if (midtransEnabled && (method === 'QRIS' || method === 'Transfer'))
         return payViaSnap(); if (paid < total)
         return toast.error('Jumlah bayar belum mencukupi.'); setGwOrderId(null); setSuccess(true); }
-    return <div className="flex flex-col gap-5"><PageHeader eyebrow="TERMINAL POS" title="Kasir" description="Transaksi penjualan cepat dan akurat."> <span className="hidden items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/[0.06] px-3 py-2 sm:flex"><span className="live-dot"/>SESSION ACTIVE · <span className="font-mono text-xs">TRX-014</span></span></PageHeader>
+    return <div className="flex flex-col gap-5"><PageHeader eyebrow="TERMINAL POS" title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.85fr)_420px]">
       <section className="min-w-0">
         <div className="mb-4 grid gap-3">
           <div className="input-with-icon"><Search className="size-4"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari produk, kode SKU..." className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/></div>
           <div className="flex gap-1.5 overflow-x-auto pb-0.5">{categories.map(c => <button key={c} type="button" onClick={() => setCategory(c)} className={cnTab(category === c)}>{c}</button>)}</div>
         </div>
-        <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-red-500/15 bg-red-500/[0.05] px-4 py-3"><div className="flex items-center gap-2.5"><Zap className="size-4 text-primary"/><span><strong className="block text-[13px]">Quick SKU lookup</strong><small className="mt-0.5 block text-[11px] text-muted-foreground">Gunakan Ctrl K dari mana pun untuk mencari item</small></span></div><kbd>Ctrl K</kbd></div>
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{shown.map(p => <article key={p.id} className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/40"><div className="flex items-center justify-between gap-2"><span className="grid size-9 place-items-center rounded-[10px] bg-muted font-mono text-[11px] font-extrabold text-primary">{initials(p.name)}</span><StockChip stock={p.stock} minimum={p.minimumStock}/></div><p className="mt-3 font-mono text-[10px] text-muted-foreground">{p.code}</p><h2 className="mt-0.5 text-[15px] leading-snug font-semibold">{p.name}</h2><p className="mt-1 text-[11px] text-muted-foreground">{p.category} · {p.unit}</p><div className="mt-auto flex items-center justify-between gap-2 pt-4"><strong className="text-[15px]">{rupiah(p.sellingPrice)}</strong><Button size="sm" onClick={() => add(p)} disabled={p.stock === 0}><Plus data-icon="inline-start"/>Tambah</Button></div></article>)}
         {!shown.length && <div className="grid h-48 place-items-center rounded-2xl border border-dashed border-border text-sm text-muted-foreground">Tidak ada produk yang cocok dengan pencarian.</div>}
         </div>
@@ -113,7 +114,8 @@ export default function PosPage() {
         </div>
       </CardContent></Card>
     </div>
-    <Dialog open={success} onOpenChange={setSuccess}><DialogContent className="rounded-2xl"><DialogHeader><div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary"><CheckCircle2 className="size-9"/></div><DialogTitle className="text-center text-2xl font-bold">Transaksi Berhasil</DialogTitle><DialogDescription className="text-center">Pembayaran telah disimpan dan stok otomatis diperbarui.</DialogDescription></DialogHeader><div className="rounded-xl bg-muted p-5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Nomor</span><strong className="font-mono">{gwOrderId || 'TRX-260827-019'}</strong></div>{gwOrderId && <div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Metode</span><strong>Midtrans Snap · {method}</strong></div>}<div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Total</span><strong>{rupiah(total)}</strong></div>{!gwOrderId && <><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Bayar</span><strong>{rupiah(paid)}</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong>{rupiah(change)}</strong></div></>}</div><DialogFooter className="grid sm:grid-cols-2"><Button variant="outline">Cetak Struk</Button><Button onClick={() => { setCart([]); setDiscount(0); setSuccess(false); setPaid(0); setGwOrderId(null); }}>Transaksi Baru</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={success} onOpenChange={setSuccess}><DialogContent className="rounded-2xl"><DialogHeader><div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary"><CheckCircle2 className="size-9"/></div><DialogTitle className="text-center text-2xl font-bold">Transaksi Berhasil</DialogTitle><DialogDescription className="text-center">Pembayaran telah disimpan dan stok otomatis diperbarui.</DialogDescription></DialogHeader><div className="rounded-xl bg-muted p-5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Nomor</span><strong className="font-mono">{gwOrderId || 'TRX-260827-019'}</strong></div>{gwOrderId && <div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Metode</span><strong>Midtrans Snap · {method}</strong></div>}<div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Total</span><strong>{rupiah(total)}</strong></div>{!gwOrderId && <><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Bayar</span><strong>{rupiah(paid)}</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong>{rupiah(change)}</strong></div></>}</div><DialogFooter className="grid sm:grid-cols-2"><Button variant="outline" onClick={() => setShowStruk(true)}>Cetak Struk</Button><Button onClick={() => { setCart([]); setDiscount(0); setSuccess(false); setPaid(0); setGwOrderId(null); setShowStruk(false); }}>Transaksi Baru</Button></DialogFooter></DialogContent></Dialog>
+    {showStruk && <ReceiptSheet open onClose={() => setShowStruk(false)} orderId={gwOrderId || 'TRX-260827-019'} date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} items={cart} subtotal={subtotal} discount={discount} total={total} method={gwOrderId ? `Midtrans Snap · ${method}` : method} customer={customerNames[customer] || customerNames.umum} paid={paid} change={change}/>}
   </div>;
 }
 
