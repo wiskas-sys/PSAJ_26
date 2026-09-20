@@ -1,8 +1,8 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { products, rupiah } from '@/lib/demo-data';
+import { getProducts, products, rupiah } from '@/lib/demo-data';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +22,9 @@ function StockChip({ stock, minimum }) {
 }
 
 export default function PosPage() {
+    const [catalog, setCatalog] = useState(products);
     const [query, setQuery] = useState('');
+    useEffect(() => setCatalog(getProducts()), []);
     const [category, setCategory] = useState('Semua');
     const [cart, setCart] = useState([]);
     const [discount, setDiscount] = useState(0);
@@ -32,7 +34,7 @@ export default function PosPage() {
     const [customer, setCustomer] = useState('umum');
     const [gwOrderId, setGwOrderId] = useState(null);
     const [showStruk, setShowStruk] = useState(false);
-    const shown = useMemo(() => products.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category]);
+    const shown = useMemo(() => catalog.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category, catalog]);
     const subtotal = cart.reduce((s, i) => s + i.product.sellingPrice * i.qty, 0);
     const total = Math.max(0, subtotal - discount);
     const change = Math.max(0, paid - total);
@@ -88,7 +90,7 @@ export default function PosPage() {
         return toast.error('Keranjang masih kosong.'); const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY); if (midtransEnabled && (method === 'QRIS' || method === 'Transfer'))
         return payViaSnap(); if (paid < total)
         return toast.error('Jumlah bayar belum mencukupi.'); setGwOrderId(null); setSuccess(true); }
-    return <div className="flex flex-col gap-5"><PageHeader eyebrow="TERMINAL POS" title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
+    return <div className="flex flex-col gap-5"><PageHeader title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.85fr)_420px]">
       <section className="min-w-0">
         <div className="mb-4 grid gap-3">

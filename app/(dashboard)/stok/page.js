@@ -1,8 +1,8 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Boxes, Minus, MoreHorizontal, PackagePlus, PackageX, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { products as initialProducts, rupiah, stockStatus } from '@/lib/demo-data';
+import { getProducts, products, rupiah, setStoredProducts, stockStatus } from '@/lib/demo-data';
 import { StockBadge } from '@/components/stock-badge';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ const statusCounts = (list) => ({
 });
 
 export default function StockPage() {
-    const [data, setData] = useState(() => initialProducts.map(p => ({ ...p })));
+    const [data, setData] = useState(() => products.map(p => ({ ...p })));
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState('Semua');
     const [targetId, setTargetId] = useState(null);
@@ -39,7 +39,10 @@ export default function StockPage() {
         setTargetId(null); setQtyInput(1);
     }
     function open(targetId, direction) { setTargetId(targetId); setDirection(direction); setQtyInput(1); }
-    return <div className="flex flex-col gap-5"><PageHeader eyebrow="LIVE INVENTORY" title="Cek Stok" description="Pantau ketersediaan barang secara cepat dan akurat."> <Button variant="outline" onClick={() => toast.success('Data stok diperbarui dari database.')}><Boxes data-icon="inline-start"/>Sinkronkan</Button></PageHeader>
+    function syncStock() { setData(getProducts().map(p => ({ ...p }))); toast.success('Data stok disinkronkan.'); }
+    useEffect(() => { setData(getProducts().map(p => ({ ...p }))); }, []);
+    useEffect(() => { setStoredProducts(data); }, [data]);
+    return <div className="flex flex-col gap-5"><PageHeader title="Cek Stok" description="Pantau ketersediaan barang secara cepat dan akurat."> <Button variant="outline" onClick={syncStock}><Boxes data-icon="inline-start"/>Sinkronkan</Button></PageHeader>
     <section className="grid gap-3 sm:grid-cols-3">{[['Total SKU', String(data.length), 'sku tercatat'], ['Stok Menipis', String(lowCount), 'perlu tindakan'], ['Nilai Persediaan', rupiah(64325000), 'estimasi harga beli']].map(([label, value, note], i) => <div key={label} className={`metric-card ${i === 1 ? 'warning' : ''}`}><p className="text-sm text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl font-bold tracking-[-.03em]">{value}</strong><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>)}</section>
     <div className="table-surface">
       <div className="flex flex-col gap-3 border-b border-border p-3.5 xl:flex-row xl:items-center xl:justify-between"><div className="input-with-icon min-w-0 flex-1"><Search className="size-4"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari nama barang atau kode barang..." className="h-10 min-w-0 w-full rounded-xl border border-border bg-transparent pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/></div><div className="flex gap-1.5 overflow-x-auto">{filters.map(v => <button key={v} type="button" onClick={() => setFilter(v)} className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${filter === v ? 'bg-primary text-white' : 'border border-border bg-card text-muted-foreground hover:text-foreground'}`}>{v}{v !== 'Semua' && <span className="rounded-full bg-black/10 px-1.5 font-mono text-[10px] dark:bg-white/10">{counts[v]}</span>}</button>)}</div></div>
