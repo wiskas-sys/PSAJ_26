@@ -2,12 +2,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircleCheck, CircleX, FileSpreadsheet, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { categories, rupiah, units } from '@/lib/demo-data';
+import { categories, rupiah, suppliers, todayISO, units } from '@/lib/demo-data';
 import { bulkSaveProducts } from '@/lib/stock-store';
-import { bulkRowSchema, fieldErrors } from '@/lib/validators';
+import { openingSchema, bulkRowSchema, fieldErrors } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 const HEADERS = ['Kode Barang', 'Nama Barang', 'Kategori', 'Satuan', 'Stok', 'Stok Minimum', 'Harga Beli', 'Harga Jual'];
@@ -26,7 +28,10 @@ function splitRow(line) {
 
 export function StockBulkImportDialog({ open, onOpenChange, products, onDone }) {
     const [text, setText] = useState('');
-    useEffect(() => { if (open) setText(''); }, [open]);
+    const [opening, setOpening] = useState(() => ({ date: todayISO(), reference: '', party: '' }));
+    const [errors, setErrors] = useState({});
+    useEffect(() => { if (open) { setText(''); setOpening({ date: todayISO(), reference: '', party: '' }); setErrors({}); } }, [open]);
+    const setOpen = (patch) => setOpening(o => ({ ...o, ...patch }));
     const analyze = useMemo(() => {
         const raw = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
         const lines = raw.map((line, i) => ({ line, no: i + 1 })).filter(({ line }) => !isHeader(line));
@@ -49,7 +54,14 @@ export function StockBulkImportDialog({ open, onOpenChange, products, onDone }) 
         e.preventDefault();
         if (!rows.length) return toast.error('Tempel data barang terlebih dahulu.');
         if (invalid) return toast.error(`${invalid} baris tidak valid. Perbaiki dulu sebelum menyimpan.`);
-        const result = bulkSaveProducts(importable);
+        const openingParsed = openingSchema.safeParse(opening);
+        if (!openingParsed.success) {
+            const [field, message] = Object.entries(fieldErrors(openingParsed))[0] ?? ['date', 'Data penerimaan tidak valid.'];
+            setErrors({ [`opening${field[0].toUpperCase()}${field.slice(1)}`]: message });
+            return toast.error('Periksa kembali data penerimaan barang.');
+        }
+        setErrors({});
+        const result = bulkSaveProducts(importable, openingParsed.data);
         if (!result.ok) return toast.error(result.error);
         toast.success(`${result.created} barang baru, ${result.updated} diperbarui.`);
         onOpenChange(false);
@@ -63,6 +75,12 @@ export function StockBulkImportDialog({ open, onOpenChange, products, onDone }) 
                     <p className="flex items-center gap-2 text-xs font-semibold"><FileSpreadsheet className="size-4 text-muted-foreground"/>Urutan kolom: {HEADERS.map((h, i) => <span key={h} className="rounded-md bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{i + 1}. {h}</span>)}</p>
                 </div>
                 <Field><FieldLabel htmlFor="bi-text">Data dari Excel</FieldLabel><Textarea id="bi-text" value={text} onChange={e => setText(e.target.value)} placeholder={SAMPLE} rows={7} className="font-mono text-xs leading-relaxed"/><FieldDescription>Pemisah otomatis: Tab (Excel), titik koma, atau koma. Baris judul otomatis dilewati.</FieldDescription></Field>
+                <div className="grid gap-3 rounded-xl border border-primary/25 bg-primary/5 p-3 sm:grid-cols-3">
+                    <div className="sm:col-span-3"><p className="text-[13px] font-semibold">Penerimaan untuk barang baru</p><p className="text-xs text-muted-foreground">Stok awal setiap barang baru dicatat sebagai mutasi dengan tanggal dan sumber di bawah. Barang yang sudah ada hanya diperbarui.</p></div>
+                    <Field data-invalid={!!errors.openingDate}><FieldLabel htmlFor="bi-date">Tanggal Penerimaan</FieldLabel><Input id="bi-date" type="date" value={opening.date} onChange={e => setOpen({ date: e.target.value })} className="h-10" aria-invalid={!!errors.openingDate}/><FieldError>{errors.openingDate}</FieldError></Field>
+                    <Field data-invalid={!!errors.openingParty}><FieldLabel>Supplier</FieldLabel><Select value={opening.party || null} onValueChange={v => setOpen({ party: v })}><SelectTrigger className="h-10 w-full bg-card" aria-invalid={!!errors.openingParty}><SelectValue placeholder="Pilih supplier..."/></SelectTrigger><SelectContent><SelectGroup>{suppliers.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select><FieldError>{errors.openingParty}</FieldError></Field>
+                    <Field data-invalid={!!errors.openingReference}><FieldLabel htmlFor="bi-ref">No. Referensi</FieldLabel><Input id="bi-ref" value={opening.reference} onChange={e => setOpen({ reference: e.target.value })} placeholder="Kosongkan bila tidak ada" className="h-10" aria-invalid={!!errors.openingReference}/><FieldError>{errors.openingReference}</FieldError></Field>
+                </div>
                 <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setText(SAMPLE)}><Wand2 data-icon="inline-start"/>Isi Contoh Data</Button>
                 {rows.length > 0 && <>
                     <div className="max-h-[38vh] overflow-y-auto rounded-xl border border-border">

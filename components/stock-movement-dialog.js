@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownToLine, ArrowUpFromLine, PackageCheck, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { outReasons, parseNumber, rupiah, stockStatus, suppliers, todayISO } from '@/lib/demo-data';
-import { recordMovement } from '@/lib/stock-store';
+import { getMovements, recordMovement } from '@/lib/stock-store';
 import { fieldErrors, movementSchema } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,6 +30,7 @@ export function StockMovementDialog({ open, onOpenChange, products, initial, onD
     const incoming = draft.type === 'IN';
     const after = product ? (incoming ? product.stock + qty : Math.max(0, product.stock - qty)) : 0;
     const overdraw = !incoming && product && qty > product.stock;
+    const noReceiptYet = incoming && product && !getMovements().some(m => m.productId === product.id && m.kind === 'PEMASOKAN');
     const partyOptions = incoming ? suppliers : outReasons;
     const Icon = incoming ? ArrowDownToLine : ArrowUpFromLine;
     const submit = (e) => {
@@ -56,6 +57,7 @@ export function StockMovementDialog({ open, onOpenChange, products, initial, onD
                     <Field><FieldLabel htmlFor="mv-unit">Satuan</FieldLabel><Input id="mv-unit" value={product?.unit ?? '-'} disabled className="h-11"/></Field>
                 </div>
                 {overdraw && <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-600 dark:text-red-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>Stok tidak mencukupi. Tersedia {product.stock} {product.unit}.</p>}
+                {noReceiptYet && <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>{product.name} belum punya catatan penerimaan dari supplier. Kalau stok fisiknya berbeda, hitung ulang lewat Stok Opname — jangan catat barang masuk dua kali.</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field data-invalid={!!errors.date}><FieldLabel htmlFor="mv-date">Tanggal</FieldLabel><Input id="mv-date" type="date" value={draft.date} onChange={e => set({ date: e.target.value })} className="h-11" aria-invalid={!!errors.date}/><FieldError>{errors.date}</FieldError></Field>
                     <Field data-invalid={!!errors.reference}><FieldLabel htmlFor="mv-ref">No. Referensi</FieldLabel><Input id="mv-ref" value={draft.reference} onChange={e => set({ reference: e.target.value })} placeholder={incoming ? 'INV-8821' : 'TRX-260827-018'} className="h-11"/><FieldDescription>Nomor faktur, PO, atau dokumen.</FieldDescription></Field>

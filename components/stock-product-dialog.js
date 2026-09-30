@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Calculator, Save, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { categories, parseNumber, rupiah, units } from '@/lib/demo-data';
+import { categories, parseNumber, rupiah, suppliers, todayISO, units } from '@/lib/demo-data';
 import { saveProduct, suggestCode } from '@/lib/stock-store';
-import { fieldErrors, productSchema } from '@/lib/validators';
+import { fieldErrors, openingSchema, productSchema } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -12,26 +12,39 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const blank = () => ({ id: '', code: '', name: '', category: categories[0], unit: units[0], purchasePrice: '', sellingPrice: '', stock: '0', minimumStock: '0' });
+const blankOpening = () => ({ date: todayISO(), reference: '', party: '' });
 
 export function StockProductDialog({ open, onOpenChange, product, onDone }) {
     const [draft, setDraft] = useState(blank);
+    const [opening, setOpening] = useState(blankOpening);
     const [errors, setErrors] = useState({});
     const editing = Boolean(product);
     useEffect(() => {
         if (!open) return;
         setErrors({});
+        setOpening(blankOpening());
         setDraft(product ? { ...blank(), ...product, purchasePrice: `${product.purchasePrice}`, sellingPrice: `${product.sellingPrice}`, stock: `${product.stock}`, minimumStock: `${product.minimumStock}` } : blank());
     }, [open, product]);
     const set = (patch) => setDraft(d => ({ ...d, ...patch }));
+    const setOpen = (patch) => setOpening(o => ({ ...o, ...patch }));
     const buy = parseNumber(draft.purchasePrice);
     const sell = parseNumber(draft.sellingPrice);
     const margin = sell - buy;
     const markup = buy > 0 ? (margin / buy) * 100 : 0;
+    const recordsOpening = !editing && parseNumber(draft.stock) > 0;
     const submit = (e) => {
         e.preventDefault();
         const parsed = productSchema.safeParse(draft);
         if (!parsed.success) { setErrors(fieldErrors(parsed)); return toast.error('Periksa kembali isian formulir.'); }
-        const result = saveProduct({ ...parsed.data, id: draft.id || undefined });
+        if (recordsOpening) {
+            const openingParsed = openingSchema.safeParse(opening);
+            if (!openingParsed.success) {
+                const [field, message] = Object.entries(fieldErrors(openingParsed))[0] ?? ['date', 'Data penerimaan tidak valid.'];
+                setErrors({ [`opening${field[0].toUpperCase()}${field.slice(1)}`]: message });
+                return toast.error('Periksa kembali data penerimaan barang.');
+            }
+        }
+        const result = saveProduct({ ...parsed.data, id: draft.id || undefined }, recordsOpening ? opening : undefined);
         if (!result.ok) { setErrors({ code: result.error }); return toast.error(result.error); }
         toast.success(editing ? `${result.product.code} berhasil diperbarui.` : `${result.product.code} berhasil didaftarkan.`);
         onOpenChange(false);
@@ -57,6 +70,14 @@ export function StockProductDialog({ open, onOpenChange, product, onDone }) {
                     <Field data-invalid={!!errors.stock}><FieldLabel htmlFor="pd-stock">{editing ? 'Stok Baru' : 'Stok Awal'}</FieldLabel><Input id="pd-stock" type="number" min="0" value={draft.stock} onChange={e => set({ stock: e.target.value })} className="h-11" aria-invalid={!!errors.stock}/>{editing && <FieldDescription>Berbeda dari stok saat ini akan dicatat sebagai mutasi.</FieldDescription>}<FieldError>{errors.stock}</FieldError></Field>
                     <Field data-invalid={!!errors.minimumStock}><FieldLabel htmlFor="pd-min">Stok Minimum</FieldLabel><Input id="pd-min" type="number" min="0" value={draft.minimumStock} onChange={e => set({ minimumStock: e.target.value })} className="h-11" aria-invalid={!!errors.minimumStock}/><FieldDescription>Batas peringatan stok menipis.</FieldDescription><FieldError>{errors.minimumStock}</FieldError></Field>
                 </div>
+                {recordsOpening && <div className="grid gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+                    <div><p className="text-[13px] font-semibold">Tercatat otomatis sebagai barang masuk</p><p className="text-xs text-muted-foreground">Stok awal {draft.stock} {draft.unit} akan dicatat sebagai mutasi beserta data penerimaan di bawah.</p></div>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <Field data-invalid={!!errors.openingDate}><FieldLabel htmlFor="pd-op-date">Tanggal Penerimaan</FieldLabel><Input id="pd-op-date" type="date" value={opening.date} onChange={e => setOpen({ date: e.target.value })} className="h-11" aria-invalid={!!errors.openingDate}/><FieldError>{errors.openingDate}</FieldError></Field>
+                        <Field data-invalid={!!errors.openingParty}><FieldLabel>Supplier</FieldLabel><Select value={opening.party || null} onValueChange={v => setOpen({ party: v })}><SelectTrigger className="h-11 w-full bg-card" aria-invalid={!!errors.openingParty}><SelectValue placeholder="Pilih supplier..."/></SelectTrigger><SelectContent><SelectGroup>{suppliers.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select><FieldDescription>Kosongkan bila tidak ada supplier.</FieldDescription><FieldError>{errors.openingParty}</FieldError></Field>
+                        <Field data-invalid={!!errors.openingReference}><FieldLabel htmlFor="pd-op-ref">No. Referensi</FieldLabel><Input id="pd-op-ref" value={opening.reference} onChange={e => setOpen({ reference: e.target.value })} placeholder="INV-8821" className="h-11 font-mono" aria-invalid={!!errors.openingReference}/><FieldDescription>Nomor faktur atau PO.</FieldDescription><FieldError>{errors.openingReference}</FieldError></Field>
+                    </div>
+                </div>}
                 <div className="flex items-center gap-2.5 rounded-2xl border border-border bg-muted/60 px-4 py-3"><Calculator className="size-4 shrink-0 text-muted-foreground"/><p className="text-xs text-muted-foreground">Margin per {draft.unit}</p><strong className={`text-sm ${margin < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>{rupiah(margin)}{buy > 0 && <small className="ml-1.5 font-normal text-muted-foreground">({markup.toFixed(1)}%)</small>}</strong><p className="ml-auto text-xs text-muted-foreground">Nilai persediaan {rupiah(parseNumber(draft.stock) * buy)}</p></div>
             </FieldGroup>
             <DialogFooter className="mt-4"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button><Button type="submit"><Save data-icon="inline-start"/>{editing ? 'Simpan Perubahan' : 'Daftarkan Barang'}</Button></DialogFooter>

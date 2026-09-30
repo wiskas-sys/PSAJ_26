@@ -30,6 +30,7 @@ export function MovementForm({ type }) {
     const qty = parseNumber(draft.quantity);
     const after = product ? (outgoing ? Math.max(0, product.stock - qty) : product.stock + qty) : 0;
     const overdraw = outgoing && product && qty > product.stock;
+    const noReceiptYet = !outgoing && product && !logs.some(m => m.productId === product.id && m.kind === 'PEMASOKAN');
     const recent = logs.filter(m => m.type === type).slice(0, 6);
     function submit(e) {
         e.preventDefault();
@@ -51,6 +52,7 @@ export function MovementForm({ type }) {
             <Field><FieldLabel htmlFor="mf-unit">Satuan</FieldLabel><Input id="mf-unit" value={product?.unit ?? '-'} disabled className="h-11"/></Field>
           </div>
           {overdraw && <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-600 dark:text-red-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>Stok tidak mencukupi. Tersedia {product.stock} {product.unit}.</p>}
+          {noReceiptYet && <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>{product.name} belum punya catatan penerimaan dari supplier. Kalau stok fisiknya berbeda, hitung ulang lewat Stok Opname — jangan catat barang masuk dua kali.</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field data-invalid={!!errors.date}><FieldLabel htmlFor="mf-date">Tanggal {outgoing ? 'Keluar' : 'Masuk'}</FieldLabel><Input id="mf-date" type="date" value={draft.date} onChange={e => set({ date: e.target.value })} className="h-11" aria-invalid={!!errors.date}/><FieldError>{errors.date}</FieldError></Field>
             <Field data-invalid={!!errors.reference}><FieldLabel htmlFor="mf-ref">No. Referensi</FieldLabel><Input id="mf-ref" value={draft.reference} onChange={e => set({ reference: e.target.value })} placeholder={outgoing ? 'TRX-260827-018' : 'INV-8821'} className="h-11"/><FieldError>{errors.reference}</FieldError></Field>

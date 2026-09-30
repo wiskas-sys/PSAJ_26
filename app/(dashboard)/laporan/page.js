@@ -7,7 +7,7 @@ import { StockBadge } from '@/components/stock-badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/page-header';
-import { dateLabel, movements as seedMovements, products as seedProducts, rupiah, sales } from '@/lib/demo-data';
+import { dateLabel, kindLabel, movements as seedMovements, products as seedProducts, rupiah, sales } from '@/lib/demo-data';
 import { getMovements, getProducts, subscribeStock } from '@/lib/stock-store';
 
 function downloadSales() {
@@ -31,15 +31,37 @@ const lightTable = 'w-full text-sm';
 const thCls = 'border-b border-border px-3.5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground';
 const tdCls = 'border-b border-border px-3.5 py-3 last:border-0';
 
+const IN_KINDS = ['PEMASOKAN', 'STOKAWAL', 'KOREKSI', 'OPNAME'];
+const OUT_KINDS = ['PEMAKAIAN', 'KOREKSI', 'OPNAME'];
+
 function MovementTable({ rows, kind }) {
-    return <Card className="rounded-[17px]"><CardHeader className="border-b border-border"><CardTitle>{kind === 'IN' ? 'Realisasi Barang Masuk' : 'Realisasi Barang Keluar'}</CardTitle><CardDescription>{kind === 'IN' ? 'Pencatatan barang masuk dari supplier.' : 'Pengeluaran stok untuk penjualan & servis.'}</CardDescription></CardHeader><CardContent className="overflow-x-auto p-0"><table className={lightTable}><thead><tr>{[['No. Pergerakan', 'text-left'], ['Barang', 'text-left'], ['Jumlah', 'text-left'], [kind === 'IN' ? 'Supplier' : 'Jenis Penggunaan', 'text-left'], ['Referensi', 'text-left'], ['Tanggal', 'text-left']].map(([h, a]) => <th key={h} className={`${thCls} ${a}`}>{h}</th>)}</tr></thead><tbody>{rows.map(r => <tr key={r[0]} className="transition-colors hover:bg-muted/50">{r.map((c, j) => <td key={j} className={`${tdCls} ${j === 0 ? 'font-mono text-xs' : j === 1 ? 'font-semibold' : 'text-muted-foreground'}`}>{c}</td>)}</tr>)}</tbody></table>{!rows.length && <p className="py-14 text-center text-muted-foreground">Belum ada pencatatan barang {kind === 'IN' ? 'masuk' : 'keluar'}.</p>}</CardContent></Card>;
+    const [filter, setFilter] = useState('ALL');
+    const available = kind === 'IN' ? IN_KINDS : OUT_KINDS;
+    const shown = filter === 'ALL' ? rows : rows.filter(r => r[3] === filter);
+    const totalQty = shown.reduce((s, r) => s + Math.abs(Number(r[2].split(' ')[0]) || 0), 0);
+    return <Card className="rounded-[17px]">
+        <CardHeader className="border-b border-border">
+            <CardTitle>{kind === 'IN' ? 'Realisasi Barang Masuk' : 'Realisasi Barang Keluar'}</CardTitle>
+            <CardDescription>{filter === 'ALL' ? (kind === 'IN' ? 'Semua pencatatan stok bertambah, termasuk penerimaan supplier dan stok awal.' : 'Semua pengeluaran stok, termasuk penjualan, servis, dan penyesuaian.') : `Disaring ke jenis ${kindLabel(filter)}.`}</CardDescription>
+        </CardHeader>
+        <div className="flex flex-col gap-3 border-b border-border p-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-1.5">
+                {[['ALL', 'Semua'], ...available.map(k => [k, kindLabel(k)])].map(([v, l]) => {
+                    const n = v === 'ALL' ? rows.length : rows.filter(r => r[3] === v).length;
+                    return <button key={v} type="button" onClick={() => setFilter(v)} className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${filter === v ? 'bg-primary text-white' : 'border border-border bg-card text-muted-foreground hover:text-foreground'}`}>{l}<span className="rounded-full bg-black/10 px-1.5 font-mono text-[10px] dark:bg-white/10">{n}</span></button>;
+                })}
+            </div>
+            <p className="text-xs text-muted-foreground">{shown.length} baris · <strong className="text-foreground">{totalQty}</strong> unit</p>
+        </div>
+        <CardContent className="overflow-x-auto p-0"><table className={lightTable}><thead><tr>{[['No. Pergerakan', 'text-left'], ['Barang', 'text-left'], ['Jumlah', 'text-left'], ['Jenis', 'text-left'], [kind === 'IN' ? 'Supplier' : 'Jenis Penggunaan', 'text-left'], ['Referensi', 'text-left'], ['Tanggal', 'text-left']].map(([h, a]) => <th key={h} className={`${thCls} ${a}`}>{h}</th>)}</tr></thead><tbody>{shown.map(r => <tr key={r[0]} className="transition-colors hover:bg-muted/50">{r.map((c, j) => <td key={j} className={`${tdCls} ${j === 0 ? 'font-mono text-xs' : j === 1 ? 'font-semibold' : j === 3 ? '' : 'text-muted-foreground'}`}>{j === 3 ? <span className="stock-chip">{kindLabel(c)}</span> : c}</td>)}</tr>)}</tbody></table>{!shown.length && <p className="py-14 text-center text-muted-foreground">Belum ada pencatatan {filter === 'ALL' ? `barang ${kind === 'IN' ? 'masuk' : 'keluar'}` : `jenis ${kindLabel(filter)}`}.</p>}</CardContent>
+    </Card>;
 }
 
 export default function Page() {
     const [logs, setLogs] = useState(() => seedMovements.map(m => ({ ...m })));
     const [catalog, setCatalog] = useState(() => seedProducts.map(p => ({ ...p })));
     useEffect(() => subscribeStock(() => { setLogs(getMovements()); setCatalog(getProducts()); }), []);
-    const toRow = (m) => [m.code, m.productName, `${m.quantity} ${m.unit}`, m.party || '—', m.reference || '—', dateLabel(m.date)];
+    const toRow = (m) => [m.code, m.productName, `${m.quantity} ${m.unit}`, m.kind, m.party || '—', m.reference || '—', dateLabel(m.date)];
     const movementsIn = useMemo(() => logs.filter(m => m.type === 'IN').map(toRow), [logs]);
     const movementsOut = useMemo(() => logs.filter(m => m.type === 'OUT').map(toRow), [logs]);
     return <div className="flex flex-col gap-5"><PageHeader title="Laporan" description="Analisis operasional dan kinerja DIAN MOTOR."> <Button onClick={downloadSales}><Download data-icon="inline-start"/>Unduh Laporan</Button></PageHeader>
