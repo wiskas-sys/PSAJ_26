@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useTheme } from 'next-themes';
 import {
     Bell, Boxes, ChevronDown, Clock3, CreditCard, HelpCircle, LogOut, Menu, Moon,
@@ -11,7 +11,8 @@ import { cn } from '@/lib/utils';
 import { subscribeUnread } from '@/lib/notif-store';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { logoutAction } from '@/app/login/actions';
+import { roleLabels } from '@/lib/demo-auth';
 
 const nav = [
     ['Kasir / Terminal POS', '/kasir', ShoppingCart],
@@ -67,28 +68,19 @@ function NavList({ onClick }) {
 }
 
 function SignOutItem() {
-    const router = useRouter();
-    async function signOut() {
-        try {
-            if (isSupabaseConfigured()) {
-                const supabase = createClient();
-                await supabase.auth.signOut();
-            }
-        }
-        finally {
-            router.push('/login');
-            router.refresh();
-        }
-    }
-    return <DropdownMenuItem className="h-9 text-red-500 data-[variant=destructive]:text-red-500" onClick={signOut}><LogOut className="size-4 text-red-500"/>Keluar dengan aman</DropdownMenuItem>;
+    const [pending, start] = useTransition();
+    return <DropdownMenuItem className="h-9 text-red-500 data-[variant=destructive]:text-red-500" disabled={pending} onClick={() => start(() => logoutAction())}><LogOut className="size-4 text-red-500"/>Keluar dengan aman</DropdownMenuItem>;
 }
 
-export function AppShell({ children }) {
+export function AppShell({ children, user }) {
     const pathname = usePathname();
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [unread, setUnreadCount] = useState(0);
     const [helpOpen, setHelpOpen] = useState(false);
+    const name = user?.name || 'Operator';
+    const roleLabel = roleLabels[user?.role] ?? 'Operator';
+    const initials = name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'DM';
     useEffect(() => setOpen(false), [pathname]);
     useEffect(() => subscribeUnread(setUnreadCount), []);
     return <div className="relative min-h-screen bg-background lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
@@ -106,9 +98,9 @@ export function AppShell({ children }) {
         <ThemeToggle className="shrink-0"/>
         <div className="ml-auto"/>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2.5 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted"><span className="grid size-9 place-items-center rounded-full bg-primary text-[11px] font-extrabold text-white">AB</span><span className="hidden max-w-[150px] xl:block"><strong className="block truncate text-[13px]">Admin Bengkel</strong><small className="block truncate text-[10px] text-muted-foreground">Administrator</small></span><ChevronDown className="hidden size-3.5 text-muted-foreground xl:block"/></DropdownMenuTrigger>
+          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2.5 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted"><span className="grid size-9 place-items-center rounded-full bg-primary text-[11px] font-extrabold text-white">{initials}</span><span className="hidden max-w-[150px] xl:block"><strong className="block truncate text-[13px]">{name}</strong><small className="block truncate text-[10px] text-muted-foreground">{roleLabel}</small></span><ChevronDown className="hidden size-3.5 text-muted-foreground xl:block"/></DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 p-1.5" align="end" sideOffset={10}>
-            <DropdownMenuLabel className="pb-2">Admin Bengkel · Administrator</DropdownMenuLabel>
+            <DropdownMenuLabel className="pb-2">{name} · {roleLabel}</DropdownMenuLabel>
             <DropdownMenuItem className="h-9" onClick={() => router.push('/pengaturan')}><Settings className="size-4 text-muted-foreground"/>Pengaturan Sistem</DropdownMenuItem>
             <DropdownMenuItem className="h-9" onClick={() => setHelpOpen(true)}><HelpCircle className="size-4 text-muted-foreground"/>Bantuan shortcut</DropdownMenuItem>
             <DropdownMenuSeparator />

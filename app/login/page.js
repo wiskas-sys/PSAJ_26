@@ -4,6 +4,8 @@ import { Boxes, ChevronRight, LockKeyhole, Mail, Moon, ReceiptText, ShieldCheck,
 import { loginAction } from './actions';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { demoUsers, roleLabels } from '@/lib/demo-auth';
+import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { useTheme } from 'next-themes';
 
 function useMounted() {
@@ -23,6 +25,10 @@ const fieldCls = 'min-h-[49px] w-full rounded-[11px] border border-border bg-whi
 export default function LoginPage() {
     const [state, action, pending] = useActionState(loginAction, { error: '' });
     const [showPassword, setShowPassword] = useState(false);
+    const [fields, setFields] = useState({ email: '', password: '' });
+    const demoMode = !isSupabaseConfigured();
+    const update = (key) => (event) => setFields((current) => ({ ...current, [key]: event.target.value }));
+    const prefill = (user) => setFields({ email: user.email, password: user.password });
     return <main className="relative min-h-screen bg-background lg:grid lg:grid-cols-[1.12fr_.88fr]">
     <div className="fx-grid" aria-hidden="true"/>
     <section className="relative z-10 flex min-h-[320px] flex-col justify-between border-b border-border px-6 py-7 sm:min-h-[380px] lg:min-h-screen lg:border-r lg:border-b-0 lg:px-9 xl:px-14">
@@ -56,10 +62,10 @@ export default function LoginPage() {
                 try { localStorage.setItem('dian-motor-remember', remember ? '1' : '0'); } catch {}
             }} className="grid gap-3.5">
             <label className="grid gap-1.5 text-xs font-semibold">Email kerja
-              <span className="input-with-icon"><Mail className="size-[18px]"/><input name="email" type="email" required autoComplete="email" inputMode="email" placeholder="nama@dianmotor.co.id" className={fieldCls}/></span>
+              <span className="input-with-icon"><Mail className="size-[18px]"/><input name="email" type="email" required autoComplete="email" inputMode="email" placeholder="nama@dianmotor.co.id" value={fields.email} onChange={update('email')} className={fieldCls}/></span>
             </label>
             <label className="grid gap-1.5 text-xs font-semibold">Password
-              <span className="input-with-icon"><LockKeyhole className="size-[18px]"/><input name="password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password" placeholder="Masukkan password Anda" className={fieldCls + ' pr-16'}/><button type="button" className="absolute top-1/2 right-2.5 z-[1] -translate-y-1/2 text-[11px] font-bold text-muted-foreground hover:text-foreground" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassword(v => !v)}>{showPassword ? 'Sembunyi' : 'Lihat'}</button></span>
+              <span className="input-with-icon"><LockKeyhole className="size-[18px]"/><input name="password" type={showPassword ? 'text' : 'password'} required autoComplete="current-password" placeholder="Masukkan password Anda" value={fields.password} onChange={update('password')} className={fieldCls + ' pr-16'}/><button type="button" className="absolute top-1/2 right-2.5 z-[1] -translate-y-1/2 text-[11px] font-bold text-muted-foreground hover:text-foreground" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassword(v => !v)}>{showPassword ? 'Sembunyi' : 'Lihat'}</button></span>
             </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5">
               <input type="checkbox" name="remember_terminal" defaultChecked className="size-4 accent-[#dc2626]"/>
@@ -67,6 +73,14 @@ export default function LoginPage() {
             </label>
             <Button type="submit" size="lg" disabled={pending} className="relative h-[51px] overflow-hidden rounded-xl text-[13px] font-bold tracking-[.055em] shadow-[0_2px_8px_rgba(220,38,38,.18)]">{pending ? <><ChevronRight className="size-4 animate-spin"/>MEMPROSES...</> : <><span>MASUK KE TERMINAL</span><ChevronRight className="size-4"/></>}</Button>
           </form>
+          {demoMode && <div className="relative mt-4 rounded-xl border border-dashed border-border bg-muted/40 p-3">
+            <p className="m-0 font-mono text-[9px] font-bold tracking-[.16em] text-muted-foreground">AKUN DEMO · KLIK UNTUK MENGISI</p>
+            <div className="mt-2 grid gap-1.5">{demoUsers.map((user) => <button key={user.email} type="button" onClick={() => prefill(user)} className="flex items-center justify-between gap-3 rounded-lg border border-transparent bg-background/60 px-2.5 py-2 text-left transition-colors hover:border-primary/35 hover:bg-background">
+              <span className="min-w-0"><strong className="block truncate text-[12px]">{user.name} · {roleLabels[user.role]}</strong><small className="mt-0.5 block truncate font-mono text-[10px] text-muted-foreground">{user.email} / {user.password}</small></span>
+              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground"/>
+            </button>)}</div>
+            <p className="mt-2.5 mb-0 text-[10px] leading-relaxed text-muted-foreground">Mode demo lokal, tanpa Supabase. Isi <code className="font-mono">NEXT_PUBLIC_SUPABASE_URL</code> untuk beralih ke Supabase Auth.</p>
+          </div>}
         </div>
         <nav className="mt-4 flex flex-wrap items-center justify-center gap-2.5 font-mono text-[9px] text-muted-foreground"><a href="mailto:support@dianmotor.co.id" className="hover:text-primary">Bantuan teknis</a><span className="text-muted-foreground/40">•</span><span>DIAN MOTOR © 2026</span></nav>
       </div>

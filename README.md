@@ -9,7 +9,19 @@ npm install
 npm run dev
 ```
 
-Buka `http://localhost:3000`. Antarmuka demo dapat dibuka tanpa integrasi; login dan mutasi database memerlukan konfigurasi berikut.
+Buka `http://localhost:3000`. Aplikasi memakai login demo lokal sehingga seluruh halaman dapat dicoba tanpa integrasi eksternal.
+
+## 1.1 Login demo
+
+Tanpa konfigurasi Supabase, login memakai akun dummy dari `lib/demo-auth.js`. Sesi disimpan pada cookie `dian-motor-session` dan proteksi route oleh `proxy.js` tetap aktif.
+
+| Peran | Email | Password |
+| --- | --- | --- |
+| Administrator | `admin@dianmotor.co.id` | `dianmotor123` |
+| Kasir | `kasir@dianmotor.co.id` | `kasir123` |
+| Mekanik | `mekanik@dianmotor.co.id` | `mekanik123` |
+
+Kredensial ini hanya untuk demo lokal. Jangan gunakan di produksi: begitu `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` terisi, login otomatis beralih ke Supabase Auth dan cookie demo diabaikan.
 
 ## 2. Konfigurasi Supabase
 
@@ -29,7 +41,7 @@ Lihat `.env.example`. Di Vercel, masukkan variabel pada Project Settings → Env
 npm run dev
 ```
 
-Gunakan akun Supabase Auth yang sudah dikonfirmasi. Proxy Next.js memperbarui sesi dan melindungi seluruh route ketika konfigurasi Supabase tersedia.
+Gunakan akun demo di bagian 1.1, atau akun Supabase Auth yang sudah dikonfirmasi bila Supabase sudah dikonfigurasi. Proxy Next.js memperbarui sesi dan melindungi seluruh route baik pada mode demo maupun mode Supabase.
 
 ## 6. Build produksi
 
