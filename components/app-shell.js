@@ -16,7 +16,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 const nav = [
     ['Kasir / Terminal POS', '/kasir', ShoppingCart],
     ['Penjualan & Transaksi', '/transaksi', ReceiptText],
-    ['Stok & Inventori', '/stok', Boxes],
+    ['Stok & Inventori', '/stok', Boxes, [['Barang Masuk', '/barang-masuk'], ['Barang Keluar', '/barang-keluar']]],
     ['Servis & Perbaikan', '/servis', Wrench],
     ['Pembayaran & Gateway', '/pembayaran', CreditCard],
     ['Laporan Shift Harian', '/laporan', Clock3],
@@ -27,6 +27,8 @@ const mobileNav = [
     ['Kasir', '/kasir'],
     ['Transaksi', '/transaksi'],
     ['Stok', '/stok'],
+    ['Masuk', '/barang-masuk'],
+    ['Keluar', '/barang-keluar'],
     ['Pembayaran', '/pembayaran'],
     ['Servis', '/servis'],
     ['Shift', '/laporan'],
@@ -57,9 +59,10 @@ function ThemeToggle({ className }) {
 
 function NavList({ onClick }) {
     const path = usePathname();
-    return <nav className="grid gap-1.5 px-[9px] py-5" aria-label="Navigasi utama">{nav.map(([label, href, Icon]) => {
-            const active = path === href;
-            return <Link key={href} href={href} onClick={onClick} className={cn('flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-semibold transition-colors', active ? 'bg-primary text-white shadow-[0_2px_6px_rgba(220,38,38,.15)]' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}><Icon className="size-[18px]" aria-hidden="true"/><span>{label}</span></Link>;
+    return <nav className="grid gap-1.5 px-[9px] py-5" aria-label="Navigasi utama">{nav.map(([label, href, Icon, children]) => {
+            const active = path === href || (children ?? []).some(([, sub]) => path === sub);
+            return <div key={href} className="grid gap-1"><Link href={href} onClick={onClick} className={cn('flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-semibold transition-colors', active ? 'bg-primary text-white shadow-[0_2px_6px_rgba(220,38,38,.15)]' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}><Icon className="size-[18px]" aria-hidden="true"/><span>{label}</span></Link>
+            {children?.map(([subLabel, subHref]) => { const subActive = path === subHref; return <Link key={subHref} href={subHref} onClick={onClick} className={cn('flex min-h-9 items-center gap-2 rounded-[10px] py-1.5 pr-3 pl-11 text-[13px] font-medium transition-colors', subActive ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}><span className="size-1.5 shrink-0 rounded-full bg-current"/>{subLabel}</Link>; })}</div>;
         })}</nav>;
 }
 
@@ -113,7 +116,7 @@ export function AppShell({ children }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogHeader><DialogTitle>Bantuan Shortcut</DialogTitle><DialogDescription>Percepat operasional harian dengan pintasan ini.</DialogDescription></DialogHeader><div className="grid gap-2">{[['/kasir', 'Buka halaman Kasir'], ['/stok', 'Buka Cek Stok'], ['/transaksi', 'Buka riwayat Transaksi'], ['/servis', 'Buka papan Servis'], ['/laporan', 'Buka Laporan Shift']].map(([k, v]) => <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span className="text-muted-foreground">{v}</span><kbd>{k}</kbd></div>)}</div></DialogContent></Dialog>
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogHeader><DialogTitle>Bantuan Shortcut</DialogTitle><DialogDescription>Percepat operasional harian dengan pintasan ini.</DialogDescription></DialogHeader><div className="grid gap-2">{[['/kasir', 'Buka halaman Kasir'], ['/stok', 'Buka Cek Stok'], ['/barang-masuk', 'Catat Barang Masuk'], ['/barang-keluar', 'Catat Barang Keluar'], ['/transaksi', 'Buka riwayat Transaksi'], ['/servis', 'Buka papan Servis'], ['/laporan', 'Buka Laporan Shift']].map(([k, v]) => <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span className="text-muted-foreground">{v}</span><kbd>{k}</kbd></div>)}</div></DialogContent></Dialog>
       <nav className="sticky top-[76px] z-20 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden" aria-label="Navigasi cepat">{mobileNav.map(([l, href]) => <Link key={href} href={href} className={cn('flex h-9 shrink-0 items-center rounded-lg px-3 text-xs font-semibold', pathname === href ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground')}>{l}</Link>)}</nav>
       <main className="relative p-4 md:p-6 xl:p-8"><div className="mx-auto max-w-[1400px]">{children}</div></main>
     </div>
