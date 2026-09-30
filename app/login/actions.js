@@ -19,3 +19,9 @@ export async function loginAction(_, formData) {
 
     redirect('/dashboard');
 }
+
+export async function logoutAction() {
+    const store = await cookies();
+    store.delete(DEMO_SESSION_COOKIE);
+    redirect('/login');
+}
