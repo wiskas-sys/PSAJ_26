@@ -1,8 +1,11 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Minus, Plus, Search, ShoppingCart, Trash2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
-import { getProducts, products, rupiah } from '@/lib/demo-data';
+import { getProducts, nextSaleCode, products, rupiah, todayISO } from '@/lib/demo-data';
+import { sellCart, subscribeStock } from '@/lib/stock-store';
+import { reconcilePendingOrders } from '@/lib/payment-reconcile';
+import { getSales, saveSale } from '@/lib/sales-store';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +27,16 @@ function StockChip({ stock, minimum }) {
 export default function PosPage() {
     const [catalog, setCatalog] = useState(products);
     const [query, setQuery] = useState('');
-    useEffect(() => setCatalog(getProducts()), []);
+    useEffect(() => {
+        setCatalog(getProducts());
+        const off = subscribeStock(() => setCatalog(getProducts()));
+        let live = true;
+        reconcilePendingOrders().then(r => {
+            if (!live || !r.reversedSales.length) return;
+            toast.warning(`${r.reversedSales.length} pembayaran ditolak, stok dikembalikan otomatis.`);
+        });
+        return () => { live = false; off(); };
+    }, []);
     const [category, setCategory] = useState('Semua');
     const [cart, setCart] = useState([]);
     const [discount, setDiscount] = useState(0);
@@ -34,6 +46,13 @@ export default function PosPage() {
     const [customer, setCustomer] = useState('umum');
     const [gwOrderId, setGwOrderId] = useState(null);
     const [showStruk, setShowStruk] = useState(false);
+    const [orderCode, setOrderCode] = useState('');
+    const [busy, setBusy] = useState(false);
+    const committedRef = useRef(new Set());
+    const shortage = useMemo(() => {
+        const live = new Map(catalog.map(p => [p.id, p.stock]));
+        return cart.filter(i => i.qty > (live.get(i.product.id) ?? 0));
+    }, [cart, catalog]);
     const shown = useMemo(() => catalog.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category, catalog]);
     const subtotal = cart.reduce((s, i) => s + i.product.sellingPrice * i.qty, 0);
     const total = Math.max(0, subtotal - discount);
@@ -47,8 +66,53 @@ export default function PosPage() {
         }
         return c.map(i => i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i);
     } return [...c, { product: p, qty: 1 }]; }); }
-    function qty(id, delta) { setCart(c => c.map(i => i.product.id === id ? { ...i, qty: Math.min(i.product.stock, Math.max(1, i.qty + delta)) } : i)); }
+    function qty(id, delta) { const live = catalog.find(p => p.id === id); const cap = live?.stock ?? 0; setCart(c => c.map(i => i.product.id === id ? { ...i, qty: Math.min(cap, Math.max(1, i.qty + delta)) } : i)); }
     const customerNames = { umum: 'Pelanggan Umum', budi: 'Budi Santoso', siti: 'Siti Aminah' };
+
+    /**
+     * Satu order hanya boleh masuk satu kali. Midtrans bisa memanggil
+     * onSuccess berulang, dan tombol Bayar bisa diklik dua kali, jadi kode
+     * transaksi dipakai sebagai kunci idempotensi.
+     *
+     * Kalau uang sudah masuk tapi stok habis karena dipakai kasir lain, sales
+     * tetap dicatat dengan status perlu tinjauan supaya uang tidak hilang,
+     * lalu stoknya dicatat lewat Barang Masuk atau koreksi manual.
+     */
+    function commitSale(gatewayOrderId, pendingVerification) {
+        const code = gatewayOrderId || nextSaleCode(todayISO(), getSales());
+        if (committedRef.current.has(code)) return true;
+        if (getSales().some(s => s.code === code)) { committedRef.current.add(code); return true; }
+        const snapshot = cart.map(i => ({ productId: i.product.id, productCode: i.product.code, productName: i.product.name, unit: i.product.unit, quantity: i.qty, price: i.product.sellingPrice }));
+        const record = { code, date: todayISO(), customer: customerNames[customer] || customerNames.umum, method, items: snapshot, subtotal, discount, total, paid, change, reference: gatewayOrderId || '', pendingVerification };
+        const result = sellCart({
+            items: cart.map(i => ({ productId: i.product.id, quantity: i.qty })),
+            reference: code,
+            party: customerNames[customer] || customerNames.umum,
+            notes: 'Penjualan dari kasir.',
+        });
+        if (!result.ok) {
+            setCatalog(getProducts());
+            const s = result.short?.[0];
+            if (pendingVerification) {
+                // Pembayaran nontunai sudah berhasil di sisi Midtrans, jadi sales
+                // tetap dicatat supaya uang dan order id bisa ditelusuri.
+                saveSale({ ...record, pendingVerification: false, needsReview: true, status: 'Perlu Tinjauan' });
+                committedRef.current.add(code);
+                setOrderCode(code);
+                toast.error('Pembayaran diterima, tetapi stok tidak cukup untuk dilayani.');
+                if (s) toast.error(`${s.name}: butuh ${s.want}, tersedia ${s.have}. Stok belum dipotong.`);
+                return false;
+            }
+            toast.error(result.error);
+            if (s) toast.error(`${s.name}: butuh ${s.want}, tersedia ${s.have}.`);
+            return false;
+        }
+        saveSale(record);
+        committedRef.current.add(code);
+        setOrderCode(code);
+        setCatalog(getProducts());
+        return true;
+    }
     function loadSnap() {
         return new Promise((resolve) => {
             if (window.snap)
@@ -62,34 +126,42 @@ export default function PosPage() {
         });
     }
     function payViaSnap() {
-        const orderId = `TRX-${Date.now()}`;
+        const orderId = nextSaleCode(todayISO(), getSales());
         (async () => {
             let res;
             try {
                 res = await fetch('/api/midtrans/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, grossAmount: total, customer: { name: customerNames[customer] || customerNames.umum }, items: cart.map(i => ({ id: i.product.id, name: i.product.name, price: i.product.sellingPrice, qty: i.qty })) }) });
             }
             catch {
+                setBusy(false);
                 return toast.error('Tidak dapat terhubung ke server pembayaran.');
             }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok)
-                return toast.error(data.error || 'Gagal membuat pembayaran.');
+            if (!res.ok) { setBusy(false); return toast.error(data.error || 'Gagal membuat pembayaran.'); }
             await loadSnap();
             const snap = window.snap;
-            if (!snap)
-                return toast.error('Snap Midtrans gagal dimuat.');
+            if (!snap) { setBusy(false); return toast.error('Snap Midtrans gagal dimuat.'); }
             snap.pay(data.token, {
-                onSuccess: () => { setGwOrderId(orderId); setSuccess(true); },
-                onPending: () => toast.info('Pembayaran menunggu konfirmasi.'),
-                onError: () => toast.error('Pembayaran gagal.'),
-                onClose: () => toast.info('Popup pembayaran ditutup, transaksi batal.'),
+                onSuccess: () => { setGwOrderId(orderId); if (commitSale(orderId, true)) { setBusy(false); setSuccess(true); } else setBusy(false); },
+                onPending: () => { setBusy(false); toast.info('Pembayaran menunggu konfirmasi.'); },
+                onError: () => { setBusy(false); toast.error('Pembayaran gagal.'); },
+                onClose: () => { setBusy(false); toast.info('Popup pembayaran ditutup, transaksi batal.'); },
             });
         })();
     }
-    function pay() { if (!cart.length)
-        return toast.error('Keranjang masih kosong.'); const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY); if (midtransEnabled && (method === 'QRIS' || method === 'Transfer'))
-        return payViaSnap(); if (paid < total)
-        return toast.error('Jumlah bayar belum mencukupi.'); setGwOrderId(null); setSuccess(true); }
+    function pay() {
+        if (busy) return;
+        if (!cart.length) return toast.error('Keranjang masih kosong.');
+        if (shortage.length) { toast.error('Stok berubah sejak barang masuk keranjang.'); return; }
+        const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY);
+        if (midtransEnabled && (method === 'QRIS' || method === 'Transfer')) { setBusy(true); return payViaSnap(); }
+        if (paid < total) return toast.error('Jumlah bayar belum mencukupi.');
+        setBusy(true);
+        setGwOrderId(null);
+        if (commitSale(null, false)) { setBusy(false); setSuccess(true); }
+        else setBusy(false);
+    }
+    function resetPos() { setCart([]); setDiscount(0); setPaid(0); setSuccess(false); setGwOrderId(null); setOrderCode(''); setShowStruk(false); setBusy(false); committedRef.current.clear(); }
     return <div className="flex flex-col gap-5"><PageHeader title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.85fr)_420px]">
       <section className="min-w-0">
@@ -112,12 +184,13 @@ export default function PosPage() {
           <Select value={method} onValueChange={setMethod}><SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{['Tunai', 'Transfer', 'QRIS'].map(x => <SelectItem value={x} key={x}>{x}</SelectItem>)}</SelectGroup></SelectContent></Select>
           <input type="number" value={paid || ''} onChange={e => setPaid(Number(e.target.value))} placeholder="Jumlah Bayar" className="h-11 w-full rounded-xl border border-border bg-transparent px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/>
           <div className="flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong className={change > 0 ? 'text-emerald-400' : ''}>{rupiah(change)}</strong></div>
-          <div className="grid grid-cols-[1fr_1.7fr] gap-2"><Button variant="outline" size="lg" onClick={() => { setCart([]); setDiscount(0); setPaid(0); }}>Batal</Button><Button size="lg" onClick={pay}>Bayar</Button></div>
+          {shortage.length > 0 && <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-600 dark:text-red-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>Stok berubah sejak keranjang diisi: {shortage.map(i => `${i.product.name} (sisa ${catalog.find(p => p.id === i.product.id)?.stock ?? 0})`).join(', ')}.</p>}
+          <div className="grid grid-cols-[1fr_1.7fr] gap-2"><Button variant="outline" size="lg" onClick={() => { setCart([]); setDiscount(0); setPaid(0); }} disabled={busy}>Batal</Button><Button size="lg" onClick={pay} disabled={shortage.length > 0 || busy}>{busy ? 'Memproses...' : 'Bayar'}</Button></div>
         </div>
       </CardContent></Card>
     </div>
-    <Dialog open={success} onOpenChange={setSuccess}><DialogContent className="rounded-2xl"><DialogHeader><div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary"><CheckCircle2 className="size-9"/></div><DialogTitle className="text-center text-2xl font-bold">Transaksi Berhasil</DialogTitle><DialogDescription className="text-center">Pembayaran telah disimpan dan stok otomatis diperbarui.</DialogDescription></DialogHeader><div className="rounded-xl bg-muted p-5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Nomor</span><strong className="font-mono">{gwOrderId || 'TRX-260827-019'}</strong></div>{gwOrderId && <div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Metode</span><strong>Midtrans Snap · {method}</strong></div>}<div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Total</span><strong>{rupiah(total)}</strong></div>{!gwOrderId && <><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Bayar</span><strong>{rupiah(paid)}</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong>{rupiah(change)}</strong></div></>}</div><DialogFooter className="grid sm:grid-cols-2"><Button variant="outline" onClick={() => setShowStruk(true)}>Cetak Struk</Button><Button onClick={() => { setCart([]); setDiscount(0); setSuccess(false); setPaid(0); setGwOrderId(null); setShowStruk(false); }}>Transaksi Baru</Button></DialogFooter></DialogContent></Dialog>
-    {showStruk && <ReceiptSheet open onClose={() => setShowStruk(false)} orderId={gwOrderId || 'TRX-260827-019'} date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} items={cart} subtotal={subtotal} discount={discount} total={total} method={gwOrderId ? `Midtrans Snap · ${method}` : method} customer={customerNames[customer] || customerNames.umum} paid={paid} change={change}/>}
+    <Dialog open={success} onOpenChange={o => { if (!o) resetPos(); }}><DialogContent className="rounded-2xl"><DialogHeader><div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary"><CheckCircle2 className="size-9"/></div><DialogTitle className="text-center text-2xl font-bold">Transaksi Berhasil</DialogTitle><DialogDescription className="text-center">Pembayaran tersimpan dan stok sudah dikurangkan.{gwOrderId && ' Pembayaran nontunai masih menunggu verifikasi.'}</DialogDescription></DialogHeader><div className="rounded-xl bg-muted p-5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Nomor</span><strong className="font-mono">{orderCode}</strong></div>{gwOrderId && <div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Metode</span><strong>Midtrans Snap · {method}</strong></div>}<div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Total</span><strong>{rupiah(total)}</strong></div>{!gwOrderId && <><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Bayar</span><strong>{rupiah(paid)}</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong>{rupiah(change)}</strong></div></>}</div><DialogFooter className="grid sm:grid-cols-2"><Button variant="outline" onClick={() => setShowStruk(true)}>Cetak Struk</Button><Button onClick={resetPos}>Transaksi Baru</Button></DialogFooter></DialogContent></Dialog>
+    {showStruk && <ReceiptSheet open onClose={() => setShowStruk(false)} orderId={orderCode} date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} items={cart} subtotal={subtotal} discount={discount} total={total} method={gwOrderId ? `Midtrans Snap · ${method}` : method} customer={customerNames[customer] || customerNames.umum} paid={paid} change={change}/>}
   </div>;
 }
 
