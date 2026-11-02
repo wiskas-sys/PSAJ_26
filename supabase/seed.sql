@@ -1,0 +1,2 @@
+-- Seed demo dinonaktifkan agar data barang contoh tidak masuk ke database.
+-- Data demonstrasi yang pernah dijalankan sebelumnya tidak dihapus otomatis.

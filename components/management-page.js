@@ -1,0 +1,156 @@
+'use client';
+import { useState } from 'react';
+import { Download, Eye, MoreHorizontal, Pencil, Plus, Printer, Search, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
+const INITIAL = {};
+const headers = { Produk: ['Kode', 'Nama Produk', 'Kategori', 'Stok', 'Harga Jual', 'Status'], Kategori: ['Nama', 'Deskripsi', 'Jumlah'], Supplier: ['Nama Supplier', 'Nomor Telepon', 'Email', 'Produk'], Pelanggan: ['Nama', 'Nomor Telepon', 'Alamat', 'Riwayat'], Servis: ['Nomor Servis', 'Pelanggan', 'Kendaraan', 'Jenis Servis', 'Status'], Transaksi: ['ID Transaksi', 'Tanggal', 'Pelanggan', 'Metode', 'Total', 'Status'], Pengguna: ['Nama', 'Email', 'Peran', 'Status'] };
+const codeCols = { Produk: 0, Servis: 0, Transaksi: 0 };
+const editConfig = {
+    Produk: { readonly: [0], selects: { 5: ['Aman', 'Menipis', 'Habis'] } },
+    Kategori: { readonly: [], selects: {} },
+    Supplier: { readonly: [], selects: {} },
+    Pelanggan: { readonly: [], selects: {} },
+    Servis: { readonly: [0], selects: { 4: ['Menunggu', 'Dikerjakan', 'Selesai'] } },
+    Pengguna: { readonly: [], selects: { 2: ['Admin', 'Kasir', 'Mekanik'], 3: ['Aktif', 'Nonaktif'] } },
+};
+const transactionSorts = [['tanggal-desc', 'Tanggal terbaru'], ['tanggal-asc', 'Tanggal terlama'], ['total-desc', 'Total terbesar'], ['total-asc', 'Total terkecil']];
+
+function nextCode(title) {
+    const prefix = title === 'Produk' ? 'PRD' : title === 'Servis' ? 'SRV' : 'DATA';
+    const stamp = Date.now().toString().slice(-6);
+    return `${prefix}-${stamp}`;
+}
+
+function initials(name) { return `${name}`.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
+function CellContent({ title, c, j }) {
+    if (codeCols[title] === j)
+        return <span className="font-mono text-xs">{c}</span>;
+    if (j === 0)
+        return <div className="part-cell"><span>{initials(c)}</span><strong className="block text-[13px]">{c}</strong></div>;
+    return <span className="text-[13px]">{c}</span>;
+}
+const tag = (s) => ['Selesai', 'Aktif', 'Aman', 'Dikerjakan'].includes(s) ? 'green' : s === 'Menunggu' || s === 'Menipis' ? 'red' : s === 'Habis' ? 'out' : '';
+function statusPill(s) { const t = tag(s); if (!t)
+        return <span className="text-[13px]">{s}</span>; return <span className={t === 'green' ? 'stock-chip' : `stock-chip ${t}`}>{s}</span>; }
+
+function compareSortValue(a, b) {
+    const sa = `${a}`, sb = `${b}`;
+    const na = sa.includes('Rp') ? parseFloat(sa.replace(/[^0-9.]/g, '')) : NaN;
+    const nb = sb.includes('Rp') ? parseFloat(sb.replace(/[^0-9.]/g, '')) : NaN;
+    if (!Number.isNaN(na) && !Number.isNaN(nb))
+        return na - nb;
+    return sa.localeCompare(sb, 'id', { numeric: true, sensitivity: 'base' });
+}
+
+function sortRows(title, rows, sort) {
+    if (title !== 'Transaksi' || !sort)
+        return rows;
+    const idx = sort.startsWith('total') ? 4 : 1;
+    const asc = sort.endsWith('asc');
+    return [...rows].sort((a, b) => { const r = compareSortValue(a[idx], b[idx]); return asc ? r : -r; });
+}
+
+function filterRows(rows, query) {
+    const q = query.trim().toLowerCase();
+    if (!q)
+        return rows;
+    return rows.filter(r => r.some(c => `${c}`.toLowerCase().includes(q)));
+}
+
+function downloadCsv(title, head, rows) {
+    const esc = (v) => `"${`${v}`.replace(/"/g, '""')}"`;
+    const csv = [head.map(esc).join(';'), ...rows.map(r => r.map(c => esc(c)).join(';'))].join('\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${rows.length} baris diunduh sebagai CSV.`);
+}
+
+function DetailSheet({ title, row, open, onClose }) {
+    const head = headers[title] ?? [];
+    const name = row?.[0] ?? '';
+    return <Sheet open={open} onOpenChange={o => { if (!o)
+            onClose(); }}><SheetContent side="right"><SheetHeader><SheetTitle>{name}</SheetTitle><SheetDescription>{title} · Detail data</SheetDescription></SheetHeader>
+        <div className="grid gap-2 px-4">{head.map((h, j) => <div key={h} className="flex items-center justify-between gap-3 border-b border-dashed border-border pb-2 text-sm last:border-0"><span className="text-muted-foreground">{h}</span><strong className="text-right text-[13px]">{row?.[j]}</strong></div>)}</div>
+    </SheetContent></Sheet>;
+}
+
+function StrukSheet({ row, open, onClose }) {
+    const [id, tanggal, pelanggan, metode, total, status] = row ?? [];
+    return <Sheet open={open} onOpenChange={o => { if (!o)
+            onClose(); }}><SheetContent side="right" className="bg-background"><div className="px-4 py-6 font-mono text-[11px] leading-relaxed text-foreground">
+        <div className="text-center"><strong className="block text-sm tracking-wide">DIAN MOTOR</strong><span className="mt-1 block text-[9px] tracking-[.14em] text-muted-foreground">ENTERPRISE POS v2.4.0</span></div>
+        <div className="my-3 border-t-2 border-dashed border-border"/>
+        <p><span className="text-muted-foreground">No.</span> {id}</p><p><span className="text-muted-foreground">Tanggal</span> {tanggal}</p><p><span className="text-muted-foreground">Pelanggan</span> {pelanggan}</p><p><span className="text-muted-foreground">Metode</span> {metode} · {status}</p>
+        <div className="my-3 border-t-2 border-dashed border-border"/>
+        <div className="flex justify-between"><span>Total Bayar</span><strong>{total}</strong></div>
+        <div className="my-3 border-t-2 border-dashed border-border"/>
+        <p className="text-center tracking-[.1em]">TERIMA KASIH · SAMPAI JUMPA</p>
+    </div></SheetContent></Sheet>;
+}
+
+export function ManagementPage({ title, description, addLabel, rows: rowsProp }) {
+    const [adding, setAdding] = useState(false);
+    const [addDraft, setAddDraft] = useState(null);
+    const [query, setQuery] = useState('');
+    const [sortBy, setSortBy] = useState('');
+    const [localRows, setLocalRows] = useState(() => (INITIAL[title] ?? []).map(r => [...r]));
+    const rows = rowsProp ?? localRows;
+    const setRows = rowsProp ? () => {} : setLocalRows;
+    const [detailIdx, setDetailIdx] = useState(null);
+    const [strukIdx, setStrukIdx] = useState(null);
+    const [editing, setEditing] = useState(null);
+    const [draft, setDraft] = useState(null);
+    const [deleting, setDeleting] = useState(null);
+    const readOnly = Boolean(rowsProp);
+    const filtered = filterRows(rows, query);
+    const sorted = sortRows(title, filtered, sortBy);
+    const cfg = editConfig[title] ?? { readonly: [], selects: {} };
+    const head = headers[title] ?? [];
+    function startEdit(rowIdx) { setEditing(rowIdx); setDraft([...rows[rowIdx]]); }
+    function saveEdit() { setRows(prev => prev.map((r, i) => i === editing ? draft : r)); setEditing(null); setDraft(null); toast.success('Data berhasil diperbarui.'); }
+    function confirmDelete() { setRows(prev => prev.filter((_, i) => i !== deleting)); setDeleting(null); toast.success('Data berhasil dihapus.'); }
+    function saveAdd() {
+        const final = addDraft.map((v, j) => {
+            const val = `${v ?? ''}`.trim();
+            if (val)
+                return val;
+            if (codeCols[title] === j)
+                return nextCode(title);
+            return '—';
+        });
+        setRows(prev => [...prev, final]);
+        toast.success('Data berhasil disimpan.');
+        setAdding(false);
+        setAddDraft(null);
+    }
+    const nameOf = (i) => rows[i]?.[0] ?? 'Data ini';
+    const hasQuery = query.trim().length > 0;
+    return <div className="flex flex-col gap-5"><PageHeader title={title} description={description}>{addLabel && !readOnly && <Dialog open={adding} onOpenChange={o => { setAdding(o); if (o) setAddDraft(new Array(head.length).fill('')); }}><DialogTrigger render={<Button />}><Plus data-icon="inline-start"/>{addLabel}</DialogTrigger><DialogContent><DialogHeader><DialogTitle>{addLabel}</DialogTitle><DialogDescription>Lengkapi informasi berikut untuk menyimpan data.</DialogDescription></DialogHeader>{addDraft && <FieldGroup>{head.map((h, j) => { const opts = cfg.selects[j]; return <Field key={h}><FieldLabel>{h}</FieldLabel>{opts ? <Select value={addDraft[j]} onValueChange={v => setAddDraft(d => d.map((x, k) => k === j ? v : x))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue placeholder={`Pilih ${h}...`}/></SelectTrigger><SelectContent><SelectGroup>{opts.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectGroup></SelectContent></Select> : <Input className="h-11" value={addDraft[j]} onChange={e => setAddDraft(d => d.map((x, k) => k === j ? e.target.value : x))} placeholder={`Masukkan ${h.toLowerCase()}...`}/>}</Field>; })}</FieldGroup>}<DialogFooter><Button variant="outline" onClick={() => { setAdding(false); setAddDraft(null); }}>Batal</Button><Button onClick={saveAdd}>Simpan</Button></DialogFooter></DialogContent></Dialog>}</PageHeader>
+    <div className="table-surface">
+      <div className="flex flex-col gap-3 border-b border-border p-3.5 sm:flex-row sm:items-center"><div className="input-with-icon min-w-0 flex-1"><Search className="size-4"/><Input className="pl-10" value={query} onChange={e => setQuery(e.target.value)} placeholder={`Cari ${title.toLowerCase()}...`}/></div>{title === 'Transaksi' && <><Select value={sortBy} onValueChange={setSortBy}><SelectTrigger className="h-10 w-fit min-w-[180px] bg-card"><SelectValue placeholder="Urutkan..."/></SelectTrigger><SelectContent><SelectGroup>{transactionSorts.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectGroup></SelectContent></Select></>}<Button variant="outline" onClick={() => downloadCsv(title, head, sorted)} disabled={!sorted.length}><Download data-icon="inline-start"/>Unduh CSV</Button></div>
+      <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b border-border">{head.map(h => <th key={h} className="px-3.5 py-2.5 text-left font-medium uppercase tracking-wide">{h}</th>)}<th className="px-3.5 py-2.5 text-right font-medium uppercase tracking-wide">Aksi</th></tr></thead><tbody>{sorted.map(r => { const origIdx = rows.indexOf(r); return <tr key={origIdx} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">{r.map((c, j) => {
+                    const last = j === r.length - 1;
+                    return <td key={j} className="px-3.5 py-3.5 align-middle">{last ? statusPill(c) : <CellContent title={title} c={c} j={j}/>}</td>;
+                })}<td className="px-3.5 py-3.5 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44 p-1.5"><DropdownMenuItem className="h-9" onClick={() => setDetailIdx(origIdx)}><Eye className="size-4 text-muted-foreground"/>Lihat Detail</DropdownMenuItem>{title === 'Transaksi' ? <DropdownMenuItem className="h-9" onClick={() => setStrukIdx(origIdx)}><Printer className="size-4 text-muted-foreground"/>Cetak Struk</DropdownMenuItem> : readOnly ? null : <><DropdownMenuItem className="h-9" onClick={() => startEdit(origIdx)}><Pencil className="size-4 text-muted-foreground"/>Edit</DropdownMenuItem><DropdownMenuSeparator/><DropdownMenuItem variant="destructive" className="h-9 text-red-500" onClick={() => setDeleting(origIdx)}><Trash2 className="size-4 text-red-500"/>Hapus</DropdownMenuItem></>}</DropdownMenuContent></DropdownMenu></td></tr>; })}</tbody></table></div>
+      {!sorted.length && <p className="py-16 text-center text-muted-foreground">{hasQuery ? 'Tidak ada data yang cocok dengan pencarian.' : `Belum ada data ${title.toLowerCase()}.`}</p>}
+    </div>
+    {detailIdx !== null && <DetailSheet title={title} row={rows[detailIdx]} open onClose={() => setDetailIdx(null)}/>}
+    {strukIdx !== null && <StrukSheet row={rows[strukIdx]} open onClose={() => setStrukIdx(null)}/>}
+    {editing !== null && draft && <Dialog open onOpenChange={o => { if (!o) { setEditing(null); setDraft(null); } }}><DialogContent><DialogHeader><DialogTitle>Edit {title}</DialogTitle><DialogDescription>Perbarui informasi lalu simpan perubahan.</DialogDescription></DialogHeader><FieldGroup>{head.map((h, j) => { const opts = cfg.selects[j]; const ro = cfg.readonly.includes(j); return <Field key={h}><FieldLabel>{h}</FieldLabel>{opts ? <Select value={draft[j]} onValueChange={v => setDraft(d => d.map((x, k) => k === j ? v : x))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{opts.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectGroup></SelectContent></Select> : <Input className="h-11" disabled={ro} value={draft[j]} onChange={e => setDraft(d => d.map((x, k) => k === j ? e.target.value : x))}/>}</Field>; })}</FieldGroup><DialogFooter><Button variant="outline" onClick={() => { setEditing(null); setDraft(null); }}>Batal</Button><Button onClick={saveEdit}>Simpan Perubahan</Button></DialogFooter></DialogContent></Dialog>}
+    {deleting !== null && <Dialog open onOpenChange={o => { if (!o) setDeleting(null); }}><DialogContent><DialogHeader><DialogTitle>Hapus {title}</DialogTitle><DialogDescription>Hapus <strong className="text-foreground">{nameOf(deleting)}</strong> secara permanen? Tindakan ini tidak bisa dibatalkan.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setDeleting(null)}>Batal</Button><Button onClick={confirmDelete}><Trash2 data-icon="inline-start"/>Hapus</Button></DialogFooter></DialogContent></Dialog>}
+  </div>;
+}
