@@ -17,7 +17,8 @@ export async function POST(request) {
     if (!orderId || !Number.isFinite(amount) || amount <= 0)
         return NextResponse.json({ error: 'orderId dan grossAmount wajib diisi.' }, { status: 400 });
     try {
-        const snap = await createSnapToken({ orderId, grossAmount: Math.round(amount), customer, items });
+        const origin = new URL(request.url).origin;
+        const snap = await createSnapToken({ orderId, grossAmount: Math.round(amount), customer, items, finishUrl: `${origin}/pembayaran` });
         const supabase = await createClient();
         if (supabase) {
             await supabase.from('payments').upsert({

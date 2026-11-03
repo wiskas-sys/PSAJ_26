@@ -1,2 +1,2 @@
-import { MovementForm } from '@/components/movement-form';
-export default function Page() { return <MovementForm type="OUT"/>; }
+import { StockFlowOverview } from '@/components/stock-flow-overview';
+export default function Page() { return <StockFlowOverview type="OUT"/>; }

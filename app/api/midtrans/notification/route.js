@@ -31,6 +31,7 @@ export async function POST(request) {
     const { error } = await supabase.from('payments').upsert({
         order_id: payload.order_id,
         amount: Number(payload.gross_amount ?? 0),
+        ...(payload.customer_details?.first_name || payload.customer_details?.name ? { customer_name: payload.customer_details.first_name ?? payload.customer_details.name } : {}),
         payment_type: payload.payment_type ?? null,
         method: methodFromPaymentType(payload.payment_type),
         status: mapStatus(payload.transaction_status),

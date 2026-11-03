@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, FileSpreadsheet, MoreHorizontal, PackagePlus, PackageX, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, FileSpreadsheet, MoreHorizontal, PackagePlus, PackageX, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { rupiah, stockStatus } from '@/lib/demo-data';
@@ -14,7 +14,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { StockMovementDialog } from '@/components/stock-movement-dialog';
 import { StockProductDialog } from '@/components/stock-product-dialog';
-import { StockOpnameDialog } from '@/components/stock-opname-dialog';
 import { StockBulkImportDialog } from '@/components/stock-bulk-import-dialog';
 import { StockMovementLog } from '@/components/stock-movement-log';
 
@@ -46,7 +45,6 @@ export default function StockPage() {
     const [filter, setFilter] = useState('Semua');
     const [movement, setMovement] = useState({ open: false, productId: null, type: 'IN' });
     const [productForm, setProductForm] = useState({ open: false, product: null });
-    const [opnameOpen, setOpnameOpen] = useState(false);
     const [bulkOpen, setBulkOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const refresh = useCallback(async () => { try { const [products, movements] = await Promise.all([listStockProducts(), listStockMovements()]); setData(products); setLogs(movements); } catch (error) { toast.error(error.message || 'Gagal memuat katalog stok.'); } }, []);
@@ -79,7 +77,6 @@ export default function StockPage() {
             <Button variant="outline" onClick={() => openMovement(null, 'IN')}><ArrowDownToLine data-icon="inline-start"/>Barang Masuk</Button>
             <Button variant="outline" onClick={() => openMovement(null, 'OUT')}><ArrowUpFromLine data-icon="inline-start"/>Barang Keluar</Button>
             <DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground data-open:bg-muted"><MoreHorizontal/><span className="sr-only">Alat stok</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-52 p-1.5">
-                <DropdownMenuItem className="h-9" onClick={() => setOpnameOpen(true)}><ClipboardCheck className="size-4 text-muted-foreground"/>Stok Opname</DropdownMenuItem>
                 <DropdownMenuItem className="h-9" onClick={() => setBulkOpen(true)}><FileSpreadsheet className="size-4 text-muted-foreground"/>Impor Massal</DropdownMenuItem>
                 <DropdownMenuSeparator/>
                 <DropdownMenuItem className="h-9" onClick={() => downloadStockCsv(shown)} disabled={!shown.length}><FileSpreadsheet className="size-4 text-muted-foreground"/>Unduh CSV Stok</DropdownMenuItem>
@@ -130,7 +127,6 @@ export default function StockPage() {
 
         <StockMovementDialog open={movement.open} onOpenChange={o => setMovement(m => ({ ...m, open: o }))} products={data} initial={{ productId: movement.productId, type: movement.type }} onDone={refresh}/>
         <StockProductDialog open={productForm.open} onOpenChange={o => setProductForm(f => ({ ...f, open: o }))} product={productForm.product} onDone={refresh}/>
-        <StockOpnameDialog open={opnameOpen} onOpenChange={setOpnameOpen} products={data} onDone={refresh}/>
         <StockBulkImportDialog open={bulkOpen} onOpenChange={setBulkOpen} products={data} onDone={refresh}/>
 
         <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) setDeleteTarget(null); }}><DialogContent><DialogHeader><DialogTitle>Hapus Barang</DialogTitle><DialogDescription>Barang dan seluruh riwayat mutasi stoknya akan dihapus permanen dari Supabase. Barang yang sudah digunakan dalam transaksi penjualan atau detail servis tidak dapat dihapus.</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setDeleteTarget(null)}>Batal</Button><Button onClick={confirmDelete}><Trash2 data-icon="inline-start"/>Hapus Barang</Button></DialogFooter></DialogContent></Dialog>
