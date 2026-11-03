@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { tools, runTool } from "@/lib/ai/tools";
+import { answerLocally } from "@/lib/ai/local-answer";
 
 export const runtime = "nodejs";
 
@@ -18,12 +19,6 @@ Aturan:
 - Kalau pertanyaan di luar urusan stok bengkel, tolak dengan sopan.`;
 
 export async function POST(request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return Response.json({ error: "AI belum dikonfigurasi. Isi ANTHROPIC_API_KEY di environment." }, { status: 503 });
-  }
-  const client = new Anthropic({ apiKey });
-
   // 1. Hanya user yang sudah login yang boleh memakai AI (mencegah biaya API bocor)
   const supabase = await createClient();
   if (!supabase) {
@@ -57,7 +52,21 @@ export async function POST(request) {
     return Response.json({ error: "Pesan kosong." }, { status: 400 });
   }
 
-  // 3. Loop tool-use (maksimal 5 putaran)
+  // 3. Tanpa API key, jawab langsung dari data stok yang ada (tanpa LLM).
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    try {
+      const reply = await answerLocally(convo[convo.length - 1].content);
+      return Response.json({ reply });
+    } catch (e) {
+      console.error("AI lokal error:", e);
+      return Response.json({ error: "Gagal membaca data stok. Coba lagi." }, { status: 500 });
+    }
+  }
+
+  const client = new Anthropic({ apiKey });
+
+  // 4. Loop tool-use (maksimal 5 putaran)
   try {
     for (let i = 0; i < 5; i++) {
       const res = await client.messages.create({
