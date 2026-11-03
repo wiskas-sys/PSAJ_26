@@ -4,7 +4,6 @@ import { tools, runTool } from "@/lib/ai/tools";
 
 export const runtime = "nodejs";
 
-const client = new Anthropic(); // otomatis membaca ANTHROPIC_API_KEY
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
 const SYSTEM_PROMPT = `Kamu adalah asisten stok untuk bengkel motor "Dian Motor".
@@ -19,8 +18,17 @@ Aturan:
 - Kalau pertanyaan di luar urusan stok bengkel, tolak dengan sopan.`;
 
 export async function POST(request) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return Response.json({ error: "AI belum dikonfigurasi. Isi ANTHROPIC_API_KEY di environment." }, { status: 503 });
+  }
+  const client = new Anthropic({ apiKey });
+
   // 1. Hanya user yang sudah login yang boleh memakai AI (mencegah biaya API bocor)
   const supabase = await createClient();
+  if (!supabase) {
+    return Response.json({ error: "Supabase belum dikonfigurasi." }, { status: 503 });
+  }
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) {
     return Response.json({ error: "Belum login." }, { status: 401 });
