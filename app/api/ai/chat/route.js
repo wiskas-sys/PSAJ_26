@@ -172,8 +172,10 @@ export async function POST(request) {
   const systemPrompt = getSystemPrompt(userRole);
   const normalizedQuery = normalizeSlang(lastUserMsg);
 
-  // 4. Eksekusi AI: Prioritaskan Gemini jika GEMINI_API_KEY tersedia
-  if (process.env.GEMINI_API_KEY) {
+  // 4. Eksekusi AI: Gunakan Gemini jika API key Google AI Studio resmi (AIzaSy...) tersedia
+  const hasValidGeminiKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().startsWith("AIzaSy"));
+
+  if (hasValidGeminiKey) {
     try {
       const geminiTools = formatToolsForGemini(tools);
       const contents = incoming.slice(-10).map((m) => ({
