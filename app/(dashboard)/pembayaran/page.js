@@ -1,6 +1,7 @@
 import { PaymentsDashboard } from '@/components/payments-dashboard';
 import { createClient } from '@/lib/supabase/server';
 import { midtransEnvironment } from '@/lib/midtrans';
+import { RoleGuard } from '@/components/role-guard';
 
 export default async function PaymentsPage() {
     const environment = midtransEnvironment();
@@ -15,5 +16,9 @@ export default async function PaymentsPage() {
         if (data)
             payments = data;
     }
-    return <PaymentsDashboard initialPayments={payments} environment={environment} configured={hasServerKey && hasClientKey} hasServerKey={hasServerKey} hasClientKey={hasClientKey} supabaseConnected={supabaseConnected}/>;
+    return (
+        <RoleGuard allowRole="owner" fallbackTitle="Data Pembayaran & Gateway Khusus Owner">
+            <PaymentsDashboard initialPayments={payments} environment={environment} configured={hasServerKey && hasClientKey} hasServerKey={hasServerKey} hasClientKey={hasClientKey} supabaseConnected={supabaseConnected}/>
+        </RoleGuard>
+    );
 }

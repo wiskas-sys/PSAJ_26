@@ -25,6 +25,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [fields, setFields] = useState({ email: '', password: '' });
     const update = (key) => (event) => setFields((current) => ({ ...current, [key]: event.target.value }));
+
     return <main className="relative min-h-screen bg-background lg:grid lg:grid-cols-[1.12fr_.88fr]">
     <div className="fx-grid" aria-hidden="true"/>
     <section className="relative z-10 flex min-h-[320px] flex-col justify-between border-b border-border px-6 py-7 sm:min-h-[380px] lg:min-h-screen lg:border-r lg:border-b-0 lg:px-9 xl:px-14">
@@ -45,19 +46,19 @@ export default function LoginPage() {
           <div className="absolute top-0 left-[13%] h-[2px] w-[74%] bg-[linear-gradient(90deg,transparent,#dc2626_50%,transparent)]" aria-hidden="true"/>
           <div className="relative mb-5 flex items-center justify-between">
             <span className="grid size-12 place-items-center rounded-[14px] border border-red-500/[0.22] bg-red-500/10 text-[#ef4444]"><ShieldCheck className="size-6"/></span>
-            <span className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.065] px-2.5 py-1.5 font-mono text-[8px] font-bold tracking-[.12em] text-[#6ee7b7]"><span className="size-1.5 rounded-full bg-[#34d399]"/>AMAN &amp; TERVERIFIKASI</span>
+            <span className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.065] px-2.5 py-1.5 font-mono text-[8px] font-bold tracking-[.12em] text-[#6ee7b7]"><span className="size-1.5 rounded-full bg-[#34d399]"/>PORTAL RESMI DIAN MOTOR</span>
           </div>
           <div className="relative mb-5">
-            <p className="m-0 font-mono text-[9px] font-bold tracking-[.18em] text-[#ef4444]">PORTAL OPERATOR</p>
-            <h2 className="mt-2 text-[clamp(27px,2vw,34px)] font-bold leading-[1.1] tracking-[-.045em]">Selamat datang kembali</h2>
-            <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">Masuk ke ruang kerja DIAN MOTOR untuk memulai sesi terminal Anda.</p>
+            <p className="m-0 font-mono text-[9px] font-bold tracking-[.18em] text-[#ef4444]">LOGIN ROLE SYSTEM</p>
+            <h2 className="mt-2 text-[clamp(27px,2vw,34px)] font-bold leading-[1.1] tracking-[-.045em]">Masuk ke Akun</h2>
+            <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">Silakan masuk menggunakan akun Owner (maks. 3 akun) atau Kasir (1 akun).</p>
           </div>
           {state.error && <Alert variant="destructive" className="mb-4"><AlertDescription>{state.error}</AlertDescription></Alert>}
           <form action={action} onSubmit={() => {
                 const remember = document.querySelector('input[name=remember_terminal]')?.checked;
                 try { localStorage.setItem('dian-motor-remember', remember ? '1' : '0'); } catch {}
             }} className="grid gap-3.5">
-            <label className="grid gap-1.5 text-xs font-semibold">Email kerja
+            <label className="grid gap-1.5 text-xs font-semibold">Email terdaftar
               <span className="input-with-icon"><Mail className="size-[18px]"/><input name="email" type="email" required autoComplete="email" inputMode="email" placeholder="nama@dianmotor.co.id" value={fields.email} onChange={update('email')} className={fieldCls}/></span>
             </label>
             <label className="grid gap-1.5 text-xs font-semibold">Password
@@ -65,10 +66,50 @@ export default function LoginPage() {
             </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5">
               <input type="checkbox" name="remember_terminal" defaultChecked className="size-4 accent-[#dc2626]"/>
-              <span className="flex-1"><strong className="block text-[11px]">Ingat terminal ini</strong><small className="mt-0.5 block text-[9px] text-muted-foreground">Tetap masuk di perangkat ini lebih lama.</small></span>
+              <span className="flex-1"><strong className="block text-[11px]">Ingat sesi ini</strong><small className="mt-0.5 block text-[9px] text-muted-foreground">Tetap masuk di terminal ini lebih lama.</small></span>
             </label>
-            <Button type="submit" size="lg" disabled={pending} className="relative h-[51px] overflow-hidden rounded-xl text-[13px] font-bold tracking-[.055em] shadow-[0_2px_8px_rgba(220,38,38,.18)]">{pending ? <><ChevronRight className="size-4 animate-spin"/>MEMPROSES...</> : <><span>MASUK KE TERMINAL</span><ChevronRight className="size-4"/></>}</Button>
+            <Button type="submit" size="lg" disabled={pending} className="relative h-[51px] overflow-hidden rounded-xl text-[13px] font-bold tracking-[.055em] shadow-[0_2px_8px_rgba(220,38,38,.18)]">{pending ? <><ChevronRight className="size-4 animate-spin"/>MEMPROSES...</> : <><span>MASUK KE SISTEM</span><ChevronRight className="size-4"/></>}</Button>
           </form>
+
+          {/* Preset Akun Cepat */}
+          <div className="relative mt-5 rounded-2xl border border-dashed border-border bg-muted/40 p-3.5">
+            <p className="m-0 font-mono text-[9px] font-bold tracking-[.16em] text-muted-foreground uppercase">
+              PILIH AKUN RESMI · KLIK UNTUK OTOMATIS MENGISI
+            </p>
+            <div className="mt-2.5 grid gap-2">
+              <div className="text-[10px] font-semibold text-muted-foreground">3 AKUN OWNER (AKSES PENUH):</div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { label: 'Owner 1', email: 'owner@dianmotor.co.id', pass: 'owner123' },
+                  { label: 'Owner 2', email: 'owner2@dianmotor.co.id', pass: 'owner123' },
+                  { label: 'Owner 3', email: 'owner3@dianmotor.co.id', pass: 'owner123' },
+                ].map((acc) => (
+                  <button
+                    key={acc.email}
+                    type="button"
+                    onClick={() => setFields({ email: acc.email, password: acc.pass })}
+                    className="flex flex-col items-start rounded-lg border border-border/80 bg-background/80 p-2 text-left transition-colors hover:border-amber-500/50 hover:bg-amber-500/10 cursor-pointer"
+                  >
+                    <span className="font-bold text-[11px] text-amber-600 dark:text-amber-400">{acc.label}</span>
+                    <span className="truncate font-mono text-[9px] text-muted-foreground">{acc.email.split('@')[0]}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-1 text-[10px] font-semibold text-muted-foreground">1 AKUN KASIR (AKSES TERBATAS):</div>
+              <button
+                type="button"
+                onClick={() => setFields({ email: 'kasir@dianmotor.co.id', password: 'kasir123' })}
+                className="flex items-center justify-between rounded-lg border border-border/80 bg-background/80 px-2.5 py-2 text-left transition-colors hover:border-blue-500/50 hover:bg-blue-500/10 cursor-pointer"
+              >
+                <div>
+                  <span className="font-bold text-[11px] text-blue-600 dark:text-blue-400">Kasir Shift Dian Motor</span>
+                  <span className="block font-mono text-[9px] text-muted-foreground">kasir@dianmotor.co.id / kasir123</span>
+                </div>
+                <span className="rounded bg-blue-500/15 px-2 py-0.5 font-mono text-[9px] font-bold text-blue-600">KASIR</span>
+              </button>
+            </div>
+          </div>
+
         </div>
         <nav className="mt-4 flex flex-wrap items-center justify-center gap-2.5 font-mono text-[9px] text-muted-foreground"><a href="mailto:support@dianmotor.co.id" className="hover:text-primary">Bantuan teknis</a><span className="text-muted-foreground/40">•</span><span>DIAN MOTOR © 2026</span></nav>
       </div>

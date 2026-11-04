@@ -5,26 +5,35 @@ import { useEffect, useState, useTransition } from 'react';
 import { useTheme } from 'next-themes';
 import {
     Bell, Boxes, ChevronDown, Clock3, CreditCard, HelpCircle, LogOut, Menu, Moon,
-    ReceiptText, Settings, ShoppingCart, Sun, Wrench, X,
+    ReceiptText, Settings, ShoppingCart, Sun, Users, Wrench, X, Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { subscribeUnread } from '@/lib/notif-store';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { logoutAction } from '@/app/login/actions';
-import { roleLabels } from '@/lib/demo-auth';
+import { roleLabels, isOwner as checkOwner } from '@/lib/demo-auth';
+import { UserProvider, useUser } from '@/components/user-context';
 
-const nav = [
+const ownerNav = [
     ['Kasir / Terminal POS', '/kasir', ShoppingCart],
     ['Penjualan & Transaksi', '/transaksi', ReceiptText],
     ['Stok & Inventori', '/stok', Boxes, [['Barang Masuk', '/barang-masuk'], ['Barang Keluar', '/barang-keluar']]],
     ['Servis & Perbaikan', '/servis', Wrench],
     ['Pembayaran & Gateway', '/pembayaran', CreditCard],
-    ['Laporan Shift Harian', '/laporan', Clock3],
+    ['Laporan Keuangan & Shift', '/laporan', Clock3],
+    ['Kelola Pengguna', '/pengguna', Users],
     ['Pengaturan Sistem', '/pengaturan', Settings],
 ];
 
-const mobileNav = [
+const kasirNav = [
+    ['Kasir / Terminal POS', '/kasir', ShoppingCart],
+    ['Penjualan & Transaksi', '/transaksi', ReceiptText],
+    ['Cek Stok & Rak', '/stok', Boxes],
+    ['Servis & Perbaikan', '/servis', Wrench],
+];
+
+const ownerMobileNav = [
     ['Kasir', '/kasir'],
     ['Transaksi', '/transaksi'],
     ['Stok', '/stok'],
@@ -32,10 +41,16 @@ const mobileNav = [
     ['Keluar', '/barang-keluar'],
     ['Pembayaran', '/pembayaran'],
     ['Servis', '/servis'],
-    ['Shift', '/laporan'],
+    ['Laporan', '/laporan'],
+    ['Pengaturan', '/pengaturan'],
 ];
 
-
+const kasirMobileNav = [
+    ['Kasir POS', '/kasir'],
+    ['Transaksi', '/transaksi'],
+    ['Cek Stok', '/stok'],
+    ['Servis', '/servis'],
+];
 
 function useMounted() {
     const [mounted, setMounted] = useState(false);
@@ -60,7 +75,10 @@ function ThemeToggle({ className }) {
 
 function NavList({ onClick }) {
     const path = usePathname();
-    return <nav className="grid gap-1.5 px-[9px] py-5" aria-label="Navigasi utama">{nav.map(([label, href, Icon, children]) => {
+    const { isOwner } = useUser();
+    const navItems = isOwner ? ownerNav : kasirNav;
+
+    return <nav className="grid gap-1.5 px-[9px] py-5" aria-label="Navigasi utama">{navItems.map(([label, href, Icon, children]) => {
             const active = path === href || (children ?? []).some(([, sub]) => path === sub);
             return <div key={href} className="grid gap-1"><Link href={href} onClick={onClick} className={cn('flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-sm font-semibold transition-colors', active ? 'bg-primary text-white shadow-[0_2px_6px_rgba(220,38,38,.15)]' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}><Icon className="size-[18px]" aria-hidden="true"/><span>{label}</span></Link>
             {children?.map(([subLabel, subHref]) => { const subActive = path === subHref; return <Link key={subHref} href={subHref} onClick={onClick} className={cn('flex min-h-9 items-center gap-2 rounded-[10px] py-1.5 pr-3 pl-11 text-[13px] font-medium transition-colors', subActive ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}><span className="size-1.5 shrink-0 rounded-full bg-current"/>{subLabel}</Link>; })}</div>;
@@ -69,25 +87,55 @@ function NavList({ onClick }) {
 
 function SignOutItem() {
     const [pending, start] = useTransition();
-    return <DropdownMenuItem className="h-9 text-red-500 data-[variant=destructive]:text-red-500" disabled={pending} onClick={() => start(() => logoutAction())}><LogOut className="size-4 text-red-500"/>Keluar dengan aman</DropdownMenuItem>;
+    return <DropdownMenuItem className="h-9 text-red-500 data-[variant=destructive]:text-red-500 cursor-pointer" disabled={pending} onClick={() => start(() => logoutAction())}><LogOut className="size-4 text-red-500 mr-2"/>Keluar dengan aman</DropdownMenuItem>;
 }
 
-export function AppShell({ children, user }) {
+function AppShellInternal({ children, user }) {
     const pathname = usePathname();
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [unread, setUnreadCount] = useState(0);
     const [helpOpen, setHelpOpen] = useState(false);
-    const name = user?.name || 'Operator';
-    const roleLabel = roleLabels[user?.role] ?? 'Operator';
-    const initials = name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'DM';
+    const { isOwner, roleLabel } = useUser();
+    const name = user?.name || (isOwner ? 'Owner Dian Motor' : 'Kasir Dian Motor');
+    const initials = name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() || (isOwner ? 'OW' : 'KS');
+    const mobileNavItems = isOwner ? ownerMobileNav : kasirMobileNav;
+
     useEffect(() => setOpen(false), [pathname]);
     useEffect(() => subscribeUnread(setUnreadCount), []);
+
     return <div className="relative min-h-screen bg-background lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
     <div className="fx-grid lg:hidden" aria-hidden="true"/>
     <aside className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-border bg-sidebar transition-transform duration-200 lg:sticky lg:top-0 lg:z-40 lg:bg-sidebar/70 lg:backdrop-blur-2xl ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-      <div className="relative flex h-[76px] items-center justify-center border-b border-border px-4"><Link href="/kasir" onClick={() => setOpen(false)} className="flex min-w-0 items-center"><strong className="truncate text-lg font-extrabold tracking-tight">DIAN MOTOR</strong></Link><button type="button" onClick={() => setOpen(false)} className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Tutup navigasi"><X className="size-4"/></button></div>
+      <div className="relative flex h-[76px] items-center justify-between border-b border-border px-4">
+        <Link href="/kasir" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2">
+            <span className="brand-mark scale-90"><span>DM</span></span>
+            <div className="min-w-0">
+                <strong className="block truncate text-base font-extrabold tracking-tight">DIAN MOTOR</strong>
+                <span className={cn(
+                    "inline-block rounded px-1.5 py-0.2 font-mono text-[9px] font-bold tracking-wider",
+                    isOwner ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                )}>
+                    {isOwner ? 'OWNER PORTAL' : 'KASIR TERMINAL'}
+                </span>
+            </div>
+        </Link>
+        <button type="button" onClick={() => setOpen(false)} className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Tutup navigasi"><X className="size-4"/></button>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto"><NavList onClick={() => setOpen(false)}/></div>
+      <div className="p-3 border-t border-border">
+        <div className="rounded-xl border border-border/80 bg-muted/40 p-2.5">
+            <div className="flex items-center gap-2">
+                <span className={cn("grid size-7 place-items-center rounded-lg text-xs font-bold", isOwner ? "bg-amber-500/20 text-amber-600" : "bg-blue-500/20 text-blue-600")}>
+                    {isOwner ? <Shield className="size-4"/> : initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold leading-tight">{name}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{roleLabel}</p>
+                </div>
+            </div>
+        </div>
+      </div>
     </aside>
     {open && <button type="button" aria-label="Tutup navigasi" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"/>}
     <div className="relative z-10 min-w-0 lg:col-start-2">
@@ -98,19 +146,42 @@ export function AppShell({ children, user }) {
         <ThemeToggle className="shrink-0"/>
         <div className="ml-auto"/>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2.5 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted"><span className="grid size-9 place-items-center rounded-full bg-primary text-[11px] font-extrabold text-white">{initials}</span><span className="hidden max-w-[150px] xl:block"><strong className="block truncate text-[13px]">{name}</strong><small className="block truncate text-[10px] text-muted-foreground">{roleLabel}</small></span><ChevronDown className="hidden size-3.5 text-muted-foreground xl:block"/></DropdownMenuTrigger>
+          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2.5 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted">
+            <span className={cn("grid size-9 place-items-center rounded-full text-[11px] font-extrabold text-white shadow-sm", isOwner ? "bg-amber-600" : "bg-primary")}>{initials}</span>
+            <span className="hidden max-w-[170px] xl:block">
+                <strong className="block truncate text-[13px]">{name}</strong>
+                <small className="block truncate text-[10px] text-muted-foreground font-medium">{roleLabel}</small>
+            </span>
+            <ChevronDown className="hidden size-3.5 text-muted-foreground xl:block"/>
+          </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 p-1.5" align="end" sideOffset={10}>
-            <DropdownMenuLabel className="pb-2">{name} · {roleLabel}</DropdownMenuLabel>
-            <DropdownMenuItem className="h-9" onClick={() => router.push('/pengaturan')}><Settings className="size-4 text-muted-foreground"/>Pengaturan Sistem</DropdownMenuItem>
-            <DropdownMenuItem className="h-9" onClick={() => setHelpOpen(true)}><HelpCircle className="size-4 text-muted-foreground"/>Bantuan shortcut</DropdownMenuItem>
+            <DropdownMenuLabel className="pb-2">
+                <div className="text-xs font-bold">{name}</div>
+                <div className="text-[10px] text-muted-foreground">{roleLabel}</div>
+            </DropdownMenuLabel>
+            {isOwner && (
+                <>
+                    <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => router.push('/pengaturan')}><Settings className="size-4 text-muted-foreground mr-2"/>Pengaturan Sistem</DropdownMenuItem>
+                    <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => router.push('/pengguna')}><Users className="size-4 text-muted-foreground mr-2"/>Kelola Akun &amp; Peran</DropdownMenuItem>
+                </>
+            )}
+            <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setHelpOpen(true)}><HelpCircle className="size-4 text-muted-foreground mr-2"/>Bantuan shortcut</DropdownMenuItem>
             <DropdownMenuSeparator />
             <SignOutItem />
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogHeader><DialogTitle>Bantuan Shortcut</DialogTitle><DialogDescription>Percepat operasional harian dengan pintasan ini.</DialogDescription></DialogHeader><div className="grid gap-2">{[['/kasir', 'Buka halaman Kasir'], ['/stok', 'Buka Cek Stok'], ['/barang-masuk', 'Catat Barang Masuk'], ['/barang-keluar', 'Catat Barang Keluar'], ['/transaksi', 'Buka riwayat Transaksi'], ['/servis', 'Buka papan Servis'], ['/laporan', 'Buka Laporan Shift']].map(([k, v]) => <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span className="text-muted-foreground">{v}</span><kbd>{k}</kbd></div>)}</div></DialogContent></Dialog>
-      <nav className="sticky top-[76px] z-20 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden" aria-label="Navigasi cepat">{mobileNav.map(([l, href]) => <Link key={href} href={href} className={cn('flex h-9 shrink-0 items-center rounded-lg px-3 text-xs font-semibold', pathname === href ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground')}>{l}</Link>)}</nav>
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogHeader><DialogTitle>Bantuan Shortcut</DialogTitle><DialogDescription>Percepat operasional harian dengan pintasan ini.</DialogDescription></DialogHeader><div className="grid gap-2">{[['/kasir', 'Buka halaman Kasir'], ['/stok', 'Buka Cek Stok'], ['/transaksi', 'Buka riwayat Transaksi'], ['/servis', 'Buka papan Servis']].map(([k, v]) => <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span className="text-muted-foreground">{v}</span><kbd>{k}</kbd></div>)}</div></DialogContent></Dialog>
+      <nav className="sticky top-[76px] z-20 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden" aria-label="Navigasi cepat">{mobileNavItems.map(([l, href]) => <Link key={href} href={href} className={cn('flex h-9 shrink-0 items-center rounded-lg px-3 text-xs font-semibold', pathname === href ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground')}>{l}</Link>)}</nav>
       <main className="relative p-4 md:p-6 xl:p-8"><div className="mx-auto max-w-[1400px]">{children}</div></main>
     </div>
   </div>;
+}
+
+export function AppShell({ children, user }) {
+    return (
+        <UserProvider user={user}>
+            <AppShellInternal user={user}>{children}</AppShellInternal>
+        </UserProvider>
+    );
 }

@@ -16,6 +16,7 @@ import { StockMovementDialog } from '@/components/stock-movement-dialog';
 import { StockProductDialog } from '@/components/stock-product-dialog';
 import { StockBulkImportDialog } from '@/components/stock-bulk-import-dialog';
 import { StockMovementLog } from '@/components/stock-movement-log';
+import { useUser } from '@/components/user-context';
 
 const filters = ['Semua', 'Stok Aman', 'Stok Menipis', 'Stok Habis'];
 const statusCounts = (list) => ({
@@ -38,6 +39,7 @@ function downloadStockCsv(list) {
 }
 
 export default function StockPage() {
+    const { isOwner } = useUser();
     const [data, setData] = useState([]);
     const [logs, setLogs] = useState([]);
     const [tab, setTab] = useState('stok');
@@ -73,7 +75,7 @@ export default function StockPage() {
     }
     return <div className="flex flex-col gap-5">
         <PageHeader title="Stok & Inventori" description="Masukkan data barang, catat mutasi, dan pantau ketersediaan secara akurat.">
-            <Button onClick={() => setProductForm({ open: true, product: null })}><Plus data-icon="inline-start"/>Tambah Barang</Button>
+            {isOwner && <Button onClick={() => setProductForm({ open: true, product: null })}><Plus data-icon="inline-start"/>Tambah Barang</Button>}
             <Button variant="outline" onClick={() => openMovement(null, 'IN')}><ArrowDownToLine data-icon="inline-start"/>Barang Masuk</Button>
             <Button variant="outline" onClick={() => openMovement(null, 'OUT')}><ArrowUpFromLine data-icon="inline-start"/>Barang Keluar</Button>
             <DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground data-open:bg-muted"><MoreHorizontal/><span className="sr-only">Alat stok</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-52 p-1.5">
@@ -85,7 +87,7 @@ export default function StockPage() {
         </PageHeader>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[['Total SKU', String(summary.total), 'barang terdaftar'], ['Stok Menipis', String(summary.low), 'perlu restock'], ['Stok Habis', String(summary.out), 'perlu pembelian'], ['Nilai Persediaan', rupiah(summary.value), 'estimasi harga beli']].map(([label, value, note], i) => <div key={label} className={`metric-card ${i === 1 ? 'warning' : ''}`}><p className="text-sm text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl font-bold tracking-[-.03em]">{value}</strong><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>)}
+            {[['Total SKU', String(summary.total), 'barang terdaftar'], ['Stok Menipis', String(summary.low), 'perlu restock'], ['Stok Habis', String(summary.out), 'perlu pembelian'], ...(isOwner ? [['Nilai Persediaan', rupiah(summary.value), 'estimasi harga modal']] : [])].map(([label, value, note], i) => <div key={label} className={`metric-card ${i === 1 ? 'warning' : ''}`}><p className="text-sm text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl font-bold tracking-[-.03em]">{value}</strong><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>)}
         </section>
 
         <div className="grid gap-4">

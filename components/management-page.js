@@ -11,7 +11,14 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-const INITIAL = {};
+const INITIAL = {
+    Pengguna: [
+        ['Owner Utama Dian Motor', 'owner@dianmotor.co.id', 'Owner', 'Aktif'],
+        ['Co-Owner Dian Motor', 'owner2@dianmotor.co.id', 'Owner', 'Aktif'],
+        ['Supervisor Dian Motor', 'owner3@dianmotor.co.id', 'Owner', 'Aktif'],
+        ['Kasir Shift Dian Motor', 'kasir@dianmotor.co.id', 'Kasir', 'Aktif'],
+    ],
+};
 const headers = { Produk: ['Kode', 'Nama Produk', 'Kategori', 'Stok', 'Harga Jual', 'Status'], Kategori: ['Nama', 'Deskripsi', 'Jumlah'], Supplier: ['Nama Supplier', 'Nomor Telepon', 'Email', 'Produk'], Pelanggan: ['Nama', 'Nomor Telepon', 'Alamat', 'Riwayat'], Servis: ['Nomor Servis', 'Pelanggan', 'Kendaraan', 'Jenis Servis', 'Status'], Transaksi: ['ID Transaksi', 'Tanggal', 'Pelanggan', 'Metode', 'Total', 'Status'], Pengguna: ['Nama', 'Email', 'Peran', 'Status'] };
 const codeCols = { Produk: 0, Servis: 0, Transaksi: 0 };
 const editConfig = {
@@ -20,7 +27,7 @@ const editConfig = {
     Supplier: { readonly: [], selects: {} },
     Pelanggan: { readonly: [], selects: {} },
     Servis: { readonly: [0], selects: { 4: ['Menunggu', 'Dikerjakan', 'Selesai'] } },
-    Pengguna: { readonly: [], selects: { 2: ['Admin', 'Kasir', 'Mekanik'], 3: ['Aktif', 'Nonaktif'] } },
+    Pengguna: { readonly: [], selects: { 2: ['Owner', 'Kasir'], 3: ['Aktif', 'Nonaktif'] } },
 };
 const transactionSorts = [['tanggal-desc', 'Tanggal terbaru'], ['tanggal-asc', 'Tanggal terlama'], ['total-desc', 'Total terbesar'], ['total-asc', 'Total terkecil']];
 
@@ -132,6 +139,22 @@ export function ManagementPage({ title, description, addLabel, rows: rowsProp })
                 return nextCode(title);
             return '—';
         });
+        if (title === 'Pengguna') {
+            const roleChosen = final[2] || 'Kasir';
+            if (roleChosen === 'Owner') {
+                const currentOwners = rows.filter(r => r[2] === 'Owner').length;
+                if (currentOwners >= 3) {
+                    toast.error('Batas maksimal akun Owner (3 akun) sudah tercapai.');
+                    return;
+                }
+            } else if (roleChosen === 'Kasir') {
+                const currentKasir = rows.filter(r => r[2] === 'Kasir').length;
+                if (currentKasir >= 1) {
+                    toast.error('Batas maksimal akun Kasir (1 akun) sudah tercapai.');
+                    return;
+                }
+            }
+        }
         setRows(prev => [...prev, final]);
         toast.success('Data berhasil disimpan.');
         setAdding(false);
