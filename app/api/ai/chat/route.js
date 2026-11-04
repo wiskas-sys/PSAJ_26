@@ -103,30 +103,9 @@ function formatStockList(data, originalQuery = "") {
 
 async function handleLocalFallback(userMessage, userRole = "kasir") {
   try {
-    const intent = extractStockIntent(userMessage);
-    let data;
-
-    if (intent.isCriticalQuery && !intent.keyword) {
-      data = await runTool("daftar_stok_kritis", {});
-    } else {
-      data = await runTool("cari_stok", { keyword: intent.keyword || userMessage });
-    }
-
-    if (!data || (Array.isArray(data) && data.length === 0)) {
-      return await answerLocally(userMessage, userRole);
-    }
-
-    if (Array.isArray(data)) {
-      return formatStockList(data, userMessage);
-    }
-
-    return typeof data === "string" ? data : JSON.stringify(data);
+    return await answerLocally(userMessage, userRole);
   } catch (err) {
-    try {
-      return await answerLocally(userMessage, userRole);
-    } catch {
-      return "Terjadi kesalahan saat membaca database stok Dian Motor.";
-    }
+    return "Terjadi kesalahan saat membaca database stok Dian Motor.";
   }
 }
 
