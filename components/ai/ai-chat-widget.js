@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, Send, Loader2, ShieldCheck, UserCheck } from "lucide-react";
+import { Sparkles, X, Send, Loader2 } from "lucide-react";
 
 const QUICK_PROMPTS = [
   "oli?",
@@ -69,12 +69,12 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
                     {isOwner ? 'OWNER' : 'KASIR'}
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">Paham singkatan Gen Z &amp; Cek Rak Cepat</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Cek Ketersediaan Stok &amp; Posisi Rak Cepat</p>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
               aria-label="Tutup"
             >
               <X className="h-4 w-4" />
@@ -90,11 +90,11 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
                     Halo! Aku asisten cerdas Dian Motor.
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                    Ketik singkat gaya santai kasir/Gen Z (misal: <em>oli?</em>, <em>oli mn?</em>, <em>stok sisa brp?</em>, <em>busi ad ga?</em>). Aku akan langsung bantu cek stok, lokasi rak, dan harga!
+                    Tanyakan ketersediaan barang, lokasi rak penyimpanan, atau harga suku cadang bengkel. Kamu bisa langsung mengetik santai atau singkat sesuai kebutuhan operasional.
                   </p>
                 </div>
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Coba ketik singkat:
+                  Pertanyaan cepat:
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {QUICK_PROMPTS.map((q) => (
@@ -147,7 +147,7 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tanya stok (contoh: oli mn? stok sisa brp?)..."
+              placeholder="Ketik pertanyaan stok di sini..."
               className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs sm:text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
             />
             <button
@@ -165,7 +165,7 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
       {/* Tombol mengambang */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-6 right-6 z-50 flex h-13 w-13 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-200 hover:scale-105 active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex h-13 w-13 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
         aria-label="Buka asisten AI"
       >
         {open ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}

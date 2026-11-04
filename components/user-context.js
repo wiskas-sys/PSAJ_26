@@ -26,3 +26,4 @@ export function UserProvider({ children, user }) {
 export function useUser() {
     return useContext(UserContext);
 }
+

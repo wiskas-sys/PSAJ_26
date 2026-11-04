@@ -38,3 +38,4 @@ export function RoleGuard({ children, allowRole = 'owner', fallbackTitle = 'Akse
 
     return children;
 }
+

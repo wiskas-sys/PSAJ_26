@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import Anthropic from "@anthropic-ai/sdk";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_SESSION_COOKIE, decodeDemoSession, isOwner } from "@/lib/demo-auth";
@@ -11,7 +10,6 @@ import { checkPromptSafety } from "@/lib/ai/security-guardrails";
 export const runtime = "nodejs";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
 function getSystemPrompt(userRole = "kasir") {
   const isOwnerUser = isOwner(userRole);
@@ -36,13 +34,13 @@ Tugasmu membantu mengecek ketersediaan suku cadang, posisi rak penyimpanan, dan 
 
 ${roleInstruction}
 
-PEMAHAMAN BAHASA GEN Z & SINGKATAN CHATTING KASIR:
-- Pengguna sering mengetik dengan sangat singkat, menggunakan bahasa gaul, atau singkatan chatting Gen Z. Kamu WAJIB memahaminya:
-  - "oli?" -> maksudnya ingin cek ketersediaan, sisa stok, lokasi rak, dan harga oli.
+KEMAMPUAN MEMAHAMI PERCAKAPAN SINGKAT & INFORMAL:
+- Pahami gaya pengetikan chatting cepat, santai, maupun singkatan tanpa perlu menyebut istilah teknis atau mengomentari gaya bicara user:
+  - "oli?" -> maksudnya mengecek ketersediaan, sisa stok, lokasi rak, dan harga oli.
   - "oli mn?" / "oli dmn?" -> maksudnya menanyakan posisi rak oli dan sisa stoknya.
   - "stok" / "stok sisa brp?" / "bpr" -> maksudnya ingin tahu sisa stok atau ringkasan stok bengkel.
-  - "busi ad ga?" / "ad gk" -> maksudnya menanyakan apakah busi masih ada/tersedia.
-  - Singkatan seperti 'bpr' (berapa), 'kpn' (kapan), 'gpp' (tidak apa-apa), 'brg' (barang), 'hbs' (habis), dll. harus dipahami dengan lancar.
+  - "busi ad ga?" / "ad gk" -> maksudnya menanyakan apakah busi masih tersedia.
+  - Pahami singkatan umum: 'bpr'/'brp' (berapa), 'kpn' (kapan), 'gpp' (tidak apa-apa), 'brg' (barang), 'hbs' (habis), dll. secara natural.
 
 Aturan Respon & Format:
 1. Selalu gunakan tool 'cari_stok' atau 'daftar_stok_kritis' untuk mengambil data stok nyata.
@@ -204,11 +202,11 @@ export async function POST(request) {
         parts: [{ text: String(m.content || "") }],
       }));
 
-      // Tambahkan info normalisasi jika mengandung slang
+      // Tambahkan konteks pemahaman jika mengandung singkatan
       if (normalizedQuery !== lastUserMsg.toLowerCase()) {
         const lastContent = contents[contents.length - 1];
         if (lastContent && lastContent.role === "user") {
-          lastContent.parts[0].text += ` (Konteks singkatan kasir: "${normalizedQuery}")`;
+          lastContent.parts[0].text += ` (Maksud pesan: "${normalizedQuery}")`;
         }
       }
 
@@ -271,67 +269,7 @@ export async function POST(request) {
     }
   }
 
-  // 5. Jika ANTHROPIC_API_KEY tersedia
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const convo = incoming
-        .slice(-20)
-        .filter(
-          (m) =>
-            (m.role === "user" || m.role === "assistant") &&
-            typeof m.content === "string" &&
-            m.content.trim()
-        )
-        .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
-
-      for (let i = 0; i < 5; i++) {
-        const res = await client.messages.create({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 1024,
-          system: systemPrompt,
-          tools,
-          messages: convo,
-        });
-
-        if (res.stop_reason !== "tool_use") {
-          const reply = res.content
-            .filter((b) => b.type === "text")
-            .map((b) => b.text)
-            .join("\n")
-            .trim();
-          return Response.json({ reply: reply || "Maaf, aku tidak punya jawaban." });
-        }
-
-        convo.push({ role: "assistant", content: res.content });
-
-        const results = [];
-        for (const block of res.content) {
-          if (block.type !== "tool_use") continue;
-          let output;
-          try {
-            output = await runTool(block.name, block.input);
-          } catch (e) {
-            output = { error: e.message };
-          }
-          results.push({
-            type: "tool_result",
-            tool_use_id: block.id,
-            content: JSON.stringify(output),
-          });
-        }
-        convo.push({ role: "user", content: results });
-      }
-
-      return Response.json({ reply: "Maaf, permintaanmu terlalu rumit. Coba dipersingkat." });
-    } catch (e) {
-      console.error("Anthropic error, fallback ke lokal:", e);
-      const fallback = await handleLocalFallback(lastUserMsg, userRole);
-      return Response.json({ reply: fallback });
-    }
-  }
-
-  // 6. Jika tidak ada API key LLM, jawab secara lokal dari database
+  // 5. Jika tidak ada API key LLM, jawab secara lokal dari database
   try {
     const reply = await handleLocalFallback(lastUserMsg, userRole);
     return Response.json({ reply });
