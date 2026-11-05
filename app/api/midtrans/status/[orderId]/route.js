@@ -18,6 +18,9 @@ export async function GET(_request, context) {
         return NextResponse.json({ error: 'orderId wajib.' }, { status: 400 });
     try {
         const data = await getTransactionStatus(orderId);
+        if (data.status_code === '404' || data.transaction_status === 'not_found') {
+            return NextResponse.json({ orderId, status: 'pending', transactionStatus: 'not_found', paymentType: null, method: null, message: 'Transaksi belum tercatat di server Midtrans.' });
+        }
         const paid = isPaidStatus(data.transaction_status);
         const supabase = await createClient();
         if (supabase) {

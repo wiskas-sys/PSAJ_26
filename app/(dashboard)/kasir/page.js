@@ -1,6 +1,7 @@
 'use client';
+import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Minus, Plus, Search, ShoppingCart, Trash2, TriangleAlert, Wrench } from 'lucide-react';
+import { CheckCircle2, CreditCard, Check, Minus, Plus, Search, ShoppingCart, Trash2, TriangleAlert, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { rupiah, todayISO } from '@/lib/demo-data';
 import { formatThousands, parseThousands } from '@/lib/money-format';
@@ -61,12 +62,18 @@ export default function PosPage() {
     const [busy, setBusy] = useState(false);
     const [showQris, setShowQris] = useState(false);
     const [pendingService, setPendingService] = useState(null);
+    const [serviceModalOpen, setServiceModalOpen] = useState(false);
+    const [serviceMethod, setServiceMethod] = useState('Tunai');
+    const [servicePaidAmount, setServicePaidAmount] = useState(0);
+    const [serviceBusy, setServiceBusy] = useState(false);
+    const [serviceReceipt, setServiceReceipt] = useState(null);
+    const [serviceQrisOpen, setServiceQrisOpen] = useState(false);
     const committedRef = useRef(new Set());
     const idempotencyRef = useRef(new Map());
     const categories = useMemo(() => ['Semua', ...new Set(catalog.map(p => p.category).filter(Boolean))], [catalog]);
     const shortage = useMemo(() => {
         const live = new Map(catalog.map(p => [p.id, p.stock]));
-        return cart.filter(i => i.qty > (live.get(i.product.id) ?? 0));
+        return cart.filter(i => !i.product?.isService && i.qty > (live.get(i.product.id) ?? 0));
     }, [cart, catalog]);
     const shown = useMemo(() => catalog.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category, catalog]);
     const subtotal = cart.reduce((s, i) => s + i.product.sellingPrice * i.qty, 0);
@@ -99,10 +106,15 @@ export default function PosPage() {
         if (committedRef.current.has(code)) return true;
         if (!idempotencyRef.current.has(code)) idempotencyRef.current.set(code, crypto.randomUUID());
         try {
-            await checkoutStockSale({ code, idempotencyKey: idempotencyRef.current.get(code),
-                items: cart.map(i => ({ product_id: i.product.id, quantity: i.qty })),
+            const stockItems = cart.filter(i => !i.product?.isService);
+            if (stockItems.length > 0) {
+                await checkoutStockSale({ code, idempotencyKey: idempotencyRef.current.get(code),
+                items: stockItems.map(i => ({ product_id: i.product.id, quantity: i.qty })),
                 discount, method, paid: gatewayOrderId ? total : paid,
                 customerId: customer === 'umum' ? null : customer });
+            } else {
+                await fetch('/api/servis/bayar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceId: code, customer: customerName, job: cart.map(i => i.product.name).join(', '), totalBill: total, method, paidAmount: gatewayOrderId ? total : paid, changeAmount: change }) });
+            }
             committedRef.current.add(code);
             setOrderCode(code);
             setCatalog(await listStockProducts());
@@ -153,7 +165,7 @@ export default function PosPage() {
         if (busy) return;
         if (!cart.length) return toast.error('Keranjang masih kosong.');
         if (shortage.length) { toast.error('Stok berubah sejak barang masuk keranjang.'); return; }
-        const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY);
+        const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && !process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY.startsWith('your-') && process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY !== 'your-client-key');
         if (method === 'QRIS') { setShowQris(true); return; }
         if (midtransEnabled && method === 'Transfer') { setBusy(true); return payViaSnap(); }
         if (paid < total) return toast.error('Jumlah bayar belum mencukupi.');
@@ -184,6 +196,7 @@ export default function PosPage() {
                 stock: 999,
                 unit: 'layanan',
                 category: 'Jasa Servis',
+                isService: true,
             },
             qty: 1,
         };
@@ -234,29 +247,109 @@ export default function PosPage() {
     function dismissPendingService() {
         setPendingService(null);
     }
+
+    async function handlePayServiceNow() {
+        if (!pendingService) return;
+        const totalBill = Number(pendingService.totalBill || pendingService.serviceFee || 35000);
+        if (serviceMethod === 'Tunai' && servicePaidAmount < totalBill) {
+            return toast.error('Jumlah uang tunai yang dibayar belum mencukupi.');
+        }
+        if (serviceMethod === 'QRIS') {
+            setServiceQrisOpen(true);
+            return;
+        }
+
+        setServiceBusy(true);
+        try {
+            const change = Math.max(0, servicePaidAmount - totalBill);
+            const res = await fetch('/api/servis/bayar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serviceId: pendingService.id,
+                    customer: pendingService.customer,
+                    plate: pendingService.plate,
+                    brand: pendingService.brand,
+                    job: pendingService.job,
+                    totalBill,
+                    method: serviceMethod,
+                    paidAmount: servicePaidAmount || totalBill,
+                    changeAmount: change,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Gagal memproses pembayaran servis.');
+
+            try {
+                const raw = window.localStorage.getItem('dian-motor-services');
+                const list = raw ? JSON.parse(raw) : [];
+                const updated = list.map(s => s.id === pendingService.id ? { ...s, status: 'Selesai', paid: true, paidAt: new Date().toISOString() } : s);
+                window.localStorage.setItem('dian-motor-services', JSON.stringify(updated));
+            } catch (e) {}
+
+            try {
+                const raw = window.localStorage.getItem('pending_service_orders');
+                const list = raw ? JSON.parse(raw) : [];
+                window.localStorage.setItem('pending_service_orders', JSON.stringify(list.filter(s => s.id !== pendingService.id)));
+            } catch (e) {}
+
+            const receiptItems = [
+                { qty: 1, product: { name: `Jasa: ${pendingService.job} (${pendingService.plate || 'Motor'})`, sellingPrice: Number(pendingService.serviceFee || totalBill) } },
+                ...(pendingService.parts || []).map(p => ({ qty: p.quantity || 1, product: { name: p.productName || 'Sparepart', sellingPrice: Number(p.sellingPrice || 0) } }))
+            ];
+            setServiceReceipt({
+                orderId: data.transactionCode,
+                customer: `${pendingService.customer} (${pendingService.plate || 'Motor'})`,
+                items: receiptItems,
+                subtotal: totalBill,
+                discount: 0,
+                total: totalBill,
+                method: serviceMethod,
+                paid: servicePaidAmount || totalBill,
+                change,
+            });
+
+            toast.success(`Pembayaran servis ${pendingService.id} berhasil diselesaikan!`);
+            setServiceModalOpen(false);
+            setPendingService(null);
+            setShowStruk(true);
+        } catch (err) {
+            toast.error(err.message || 'Gagal memproses pembayaran.');
+        } finally {
+            setServiceBusy(false);
+        }
+    }
     function resetPos() { setCart([]); setDiscount(0); setPaid(0); setSuccess(false); setGwOrderId(null); setOrderCode(''); setShowStruk(false); setBusy(false); committedRef.current.clear(); idempotencyRef.current.clear(); }
     return <div className="flex flex-col gap-5"><PageHeader title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
       {pendingService && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-400 shadow-sm animate-in fade-in-50">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-emerald-500/20 text-emerald-400">
-              <Wrench className="size-5" />
+            <span className="grid size-11 place-items-center rounded-xl bg-emerald-500/20 text-emerald-400">
+              <Wrench className="size-6" />
             </span>
             <div>
-              <p className="text-sm font-bold text-foreground">
-                Order Servis Siap Dibayar: <span className="font-mono text-emerald-400">{pendingService.id}</span> · {pendingService.customer} ({pendingService.plate || pendingService.brand})
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Pekerjaan: <strong>{pendingService.job}</strong> {pendingService.complaint ? `(Keluhan: "${pendingService.complaint}")` : ''} · {pendingService.parts?.length || 0} tambahan sparepart
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold text-white bg-emerald-700/60 px-2 py-0.5 rounded">
+                  {pendingService.id}
+                </span>
+                <p className="text-sm font-bold text-foreground">
+                  {pendingService.customer} <span className="text-emerald-400 font-mono">({pendingService.plate || pendingService.brand || 'Motor'})</span>
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pekerjaan: <strong className="text-foreground">{pendingService.job}</strong> {pendingService.complaint ? `· Keluhan: "${pendingService.complaint}"` : ''} · Total Biaya Servis: <strong className="text-emerald-400 text-sm font-mono">{rupiah(pendingService.totalBill || pendingService.serviceFee || 35000)}</strong>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => loadServiceToCart(pendingService)} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9">
-              <Plus className="size-3.5"/> Masukkan ke Keranjang Kasir
+            <Button size="sm" onClick={() => { setServicePaidAmount(Number(pendingService.totalBill || pendingService.serviceFee || 35000)); setServiceModalOpen(true); }} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9">
+              <CreditCard className="size-3.5 mr-1"/> Bayar Tagihan Servis ({rupiah(pendingService.totalBill || pendingService.serviceFee || 35000)})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => loadServiceToCart(pendingService)} className="h-9 text-xs">
+              <Plus className="size-3.5 mr-1"/> + Keranjang POS
             </Button>
             <Button size="sm" variant="ghost" onClick={dismissPendingService} className="h-9 text-xs text-muted-foreground hover:text-foreground">
-              Tutup
+              Abaikan
             </Button>
           </div>
         </div>
@@ -294,8 +387,203 @@ export default function PosPage() {
       </CardContent></Card>
     </div>
     <Dialog open={success} onOpenChange={o => { if (!o) resetPos(); }}><DialogContent className="rounded-2xl"><DialogHeader><div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary"><CheckCircle2 className="size-9"/></div><DialogTitle className="text-center text-2xl font-bold">Transaksi Berhasil</DialogTitle><DialogDescription className="text-center">Pembayaran tersimpan dan stok sudah dikurangkan.{gwOrderId && ' Pembayaran nontunai masih menunggu verifikasi.'}</DialogDescription></DialogHeader><div className="rounded-xl bg-muted p-5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Nomor</span><strong className="font-mono">{orderCode}</strong></div>{gwOrderId && <div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Metode</span><strong>Midtrans Snap · {method}</strong></div>}<div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Total</span><strong>{rupiah(total)}</strong></div>{!gwOrderId && <><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Bayar</span><strong>{rupiah(paid)}</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong>{rupiah(change)}</strong></div></>}</div><DialogFooter className="grid sm:grid-cols-2"><Button variant="outline" onClick={() => setShowStruk(true)}>Cetak Struk</Button><Button onClick={resetPos}>Transaksi Baru</Button></DialogFooter></DialogContent></Dialog>
-    {showStruk && <ReceiptSheet open onClose={() => setShowStruk(false)} orderId={orderCode} date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} items={cart} subtotal={subtotal} discount={discount} total={total} method={method === 'QRIS' ? 'QRIS Dinamis' : (gwOrderId ? `Midtrans Snap · ${method}` : method)} customer={customerName} paid={paid} change={change}/>}
+    {showStruk && (
+      <ReceiptSheet
+        open
+        onClose={() => { setShowStruk(false); setServiceReceipt(null); }}
+        orderId={serviceReceipt?.orderId || orderCode}
+        date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        items={serviceReceipt?.items || cart}
+        subtotal={serviceReceipt?.subtotal ?? subtotal}
+        discount={serviceReceipt?.discount ?? discount}
+        total={serviceReceipt?.total ?? total}
+        method={serviceReceipt?.method || (method === 'QRIS' ? 'QRIS Dinamis' : (gwOrderId ? `Midtrans Snap · ${method}` : method))}
+        customer={serviceReceipt?.customer || customerName}
+        paid={serviceReceipt?.paid ?? paid}
+        change={serviceReceipt?.change ?? change}
+      />
+    )}
     <QrisPaymentDialog open={showQris} onClose={() => setShowQris(false)} amount={total} cartItems={cart} customer={{ id: customer, name: customerName }} onSuccess={handleQrisSuccess}/>
+
+    <Dialog open={serviceModalOpen} onOpenChange={o => { if (!o) setServiceModalOpen(false); }}>
+        <DialogContent className="rounded-2xl max-w-lg">
+            <DialogHeader>
+                <div className="mx-auto grid size-12 place-items-center rounded-full bg-emerald-500/10 text-emerald-500">
+                    <Wrench className="size-6" />
+                </div>
+                <DialogTitle className="text-center text-xl font-bold">Bayar Tagihan Servis</DialogTitle>
+                <DialogDescription className="text-center">
+                    Biaya pekerjaan dan sparepart yang telah ditentukan oleh tukang servis.
+                </DialogDescription>
+            </DialogHeader>
+            {pendingService && (
+                <div className="flex flex-col gap-4">
+                    <div className="rounded-xl border border-border bg-muted/60 p-4">
+                        <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">No. Servis</span>
+                            <strong className="font-mono text-emerald-400">{pendingService.id}</strong>
+                        </div>
+                        <div className="mt-1.5 flex justify-between text-xs">
+                            <span className="text-muted-foreground">Pelanggan / Motor</span>
+                            <span className="font-semibold text-foreground">{pendingService.customer} · {pendingService.plate} ({pendingService.brand || 'Motor'})</span>
+                        </div>
+                        <div className="mt-1.5 flex justify-between text-xs">
+                            <span className="text-muted-foreground">Pekerjaan Servis</span>
+                            <span className="font-medium text-foreground">{pendingService.job}</span>
+                        </div>
+                        {pendingService.complaint && (
+                            <div className="mt-1.5 flex justify-between text-xs">
+                                <span className="text-muted-foreground">Keluhan</span>
+                                <span className="italic text-muted-foreground">&ldquo;{pendingService.complaint}&rdquo;</span>
+                            </div>
+                        )}
+                        {(pendingService.parts?.length ?? 0) > 0 && (
+                            <div className="mt-2 border-t border-dashed border-border pt-2 text-xs">
+                                <span className="text-muted-foreground block mb-1">Sparepart Diganti:</span>
+                                <div className="grid gap-1">
+                                    {pendingService.parts.map((p, idx) => (
+                                        <div key={idx} className="flex justify-between font-mono text-[11px]">
+                                            <span>{p.quantity}x {p.productName}</span>
+                                            <span>{rupiah((p.sellingPrice || 0) * (p.quantity || 1))}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-sm font-bold">
+                            <span>Total Tagihan (Tukang Servis)</span>
+                            <strong className="text-lg text-emerald-500 font-mono">{rupiah(pendingService.totalBill || pendingService.serviceFee || 35000)}</strong>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-muted-foreground">Metode Pembayaran</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setServiceMethod('Tunai')}
+                                className={cn(
+                                    "flex items-center justify-center gap-2 rounded-xl border p-3 font-semibold text-sm transition-all",
+                                    serviceMethod === 'Tunai' ? "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold" : "border-border hover:bg-muted"
+                                )}
+                            >
+                                <CheckCircle2 className={cn("size-4", serviceMethod === 'Tunai' ? "text-emerald-400" : "opacity-30")} />
+                                Tunai (Cash)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setServiceMethod('QRIS')}
+                                className={cn(
+                                    "flex items-center justify-center gap-2 rounded-xl border p-3 font-semibold text-sm transition-all",
+                                    serviceMethod === 'QRIS' ? "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold" : "border-border hover:bg-muted"
+                                )}
+                            >
+                                <CheckCircle2 className={cn("size-4", serviceMethod === 'QRIS' ? "text-emerald-400" : "opacity-30")} />
+                                QRIS Dinamis
+                            </button>
+                        </div>
+                    </div>
+
+                    {serviceMethod === 'Tunai' && (
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-semibold text-muted-foreground">Uang Diterima dari Pelanggan (Rp)</label>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={formatThousands(servicePaidAmount)}
+                                onChange={e => setServicePaidAmount(parseThousands(e.target.value))}
+                                className="h-11 w-full rounded-xl border border-border bg-card px-3 text-lg font-bold outline-none focus:border-primary"
+                                placeholder="0"
+                            />
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                {[
+                                    Number(pendingService.totalBill || pendingService.serviceFee || 35000),
+                                    50000,
+                                    100000,
+                                    150000,
+                                    200000
+                                ].filter((v, i, a) => a.indexOf(v) === i && v >= Number(pendingService.totalBill || pendingService.serviceFee || 35000)).slice(0, 4).map(nominal => (
+                                    <button
+                                        key={nominal}
+                                        type="button"
+                                        onClick={() => setServicePaidAmount(nominal)}
+                                        className="rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-xs font-mono font-semibold hover:bg-muted"
+                                    >
+                                        {nominal === Number(pendingService.totalBill || pendingService.serviceFee || 35000) ? 'Uang Pas' : rupiah(nominal)}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="mt-2 flex items-center justify-between rounded-lg bg-muted/40 p-2.5 text-sm">
+                                <span className="text-muted-foreground">Kembalian</span>
+                                <strong className="font-mono text-base font-bold text-foreground">
+                                    {rupiah(Math.max(0, servicePaidAmount - Number(pendingService.totalBill || pendingService.serviceFee || 35000)))}
+                                </strong>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+            <DialogFooter className="grid sm:grid-cols-2 gap-2 mt-2">
+                <Button variant="outline" onClick={() => setServiceModalOpen(false)}>Batal</Button>
+                <Button onClick={handlePayServiceNow} disabled={serviceBusy} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+                    {serviceBusy ? 'Memproses...' : (serviceMethod === 'QRIS' ? 'Buka QRIS Servis' : 'Konfirmasi & Cetak Struk')}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    {serviceQrisOpen && pendingService && (
+        <QrisPaymentDialog
+            open={serviceQrisOpen}
+            onClose={() => setServiceQrisOpen(false)}
+            amount={Number(pendingService.totalBill || pendingService.serviceFee || 35000)}
+            cartItems={[
+                { id: `jasa-${pendingService.id}`, name: `Servis ${pendingService.job} (${pendingService.plate || 'Motor'})`, price: Number(pendingService.totalBill || pendingService.serviceFee || 35000), qty: 1 }
+            ]}
+            customer={{ id: 'service', name: `${pendingService.customer} (${pendingService.plate || 'Motor'})` }}
+            onSuccess={({ orderId, totalAmount }) => {
+                setServiceQrisOpen(false);
+                setServiceModalOpen(false);
+                try {
+                    const raw = window.localStorage.getItem('dian-motor-services');
+                    const list = raw ? JSON.parse(raw) : [];
+                    window.localStorage.setItem('dian-motor-services', JSON.stringify(list.map(s => s.id === pendingService.id ? { ...s, status: 'Selesai', paid: true, paidAt: new Date().toISOString() } : s)));
+                    const praw = window.localStorage.getItem('pending_service_orders');
+                    const plist = praw ? JSON.parse(praw) : [];
+                    window.localStorage.setItem('pending_service_orders', JSON.stringify(plist.filter(s => s.id !== pendingService.id)));
+                } catch (e) {}
+                fetch('/api/servis/bayar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serviceId: pendingService.id,
+                        customer: pendingService.customer,
+                        plate: pendingService.plate,
+                        brand: pendingService.brand,
+                        job: pendingService.job,
+                        totalBill: totalAmount,
+                        method: 'QRIS',
+                        paidAmount: totalAmount,
+                        changeAmount: 0,
+                    }),
+                }).catch(() => {});
+                setServiceReceipt({
+                    orderId,
+                    customer: `${pendingService.customer} (${pendingService.plate || 'Motor'})`,
+                    items: [{ qty: 1, product: { name: `Servis ${pendingService.job} (${pendingService.plate || 'Motor'})`, sellingPrice: totalAmount } }],
+                    subtotal: totalAmount,
+                    discount: 0,
+                    total: totalAmount,
+                    method: 'QRIS Dinamis',
+                    paid: totalAmount,
+                    change: 0,
+                });
+                setShowStruk(true);
+                setPendingService(null);
+                toast.success(`Pembayaran QRIS untuk servis ${pendingService.id} berhasil diverifikasi!`);
+            }}
+        />
+    )}
   </div>;
 }
 

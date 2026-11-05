@@ -23,7 +23,7 @@ export default function Page() {
     const [payMethods, setPayMethods] = useState({ Tunai: true, Transfer: true, QRIS: true, 'Virtual Account': true, 'E-Wallet': true });
     const set = (k) => () => setPrefs(p => ({ ...p, [k]: !p[k] }));
     const supabaseOk = isSupabaseConfigured();
-    const midtransOk = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY);
+    const midtransOk = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && !process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY.startsWith('your-') && process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY !== 'your-client-key');
     const health = [
         ['Supabase Database', supabaseOk ? 'Terhubung' : 'Belum dikonfigurasi', supabaseOk],
         ['Auth Service', supabaseOk ? 'Siap digunakan' : 'Belum dikonfigurasi', supabaseOk],

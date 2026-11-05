@@ -123,13 +123,21 @@ export default function Page() {
         setDeleteIdx(null);
     }
     function sendToKasir(service) {
+        const partsTotal = (service.parts || []).reduce((sum, p) => sum + (p.sellingPrice || 0) * (p.quantity || 1), 0);
+        const fee = Number(service.serviceFee || 0);
+        const totalBill = fee + partsTotal;
+        const payload = {
+            ...service,
+            totalBill,
+            partsSummary: (service.parts || []).map(p => `${p.quantity}x ${p.productName}`).join(', '),
+        };
         try {
             const raw = window.localStorage.getItem('pending_service_orders');
             const list = raw ? JSON.parse(raw) : [];
-            const nextList = [service, ...list.filter(x => x.id !== service.id)];
+            const nextList = [payload, ...list.filter(x => x.id !== service.id)];
             window.localStorage.setItem('pending_service_orders', JSON.stringify(nextList));
         } catch (e) {}
-        toast.success(`Servis ${service.id} siap dibayar di kasir!`);
+        toast.success(`Tagihan servis ${service.id} (${rupiah(totalBill)}) siap dibayar di kasir!`);
         router.push(`/kasir?serviceId=${service.id}`);
     }
     const tag = (s) => s === 'Selesai' ? 'stock-chip' : s === 'Dikerjakan' ? 'stock-chip low' : 'stock-chip';
@@ -146,11 +154,11 @@ export default function Page() {
         <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Plat Nomor</FieldLabel><Input value={draft.plate} onChange={e => setDraft(d => ({ ...d, plate: e.target.value }))} placeholder="B 1234 XYZ"/></Field><Field><FieldLabel>Merk &amp; Tipe</FieldLabel><Input value={draft.brand} onChange={e => setDraft(d => ({ ...d, brand: e.target.value }))} placeholder="Honda Vario 125"/></Field></div>
         <Field><FieldLabel>Jenis Servis</FieldLabel><Input value={draft.job} onChange={e => setDraft(d => ({ ...d, job: e.target.value }))} placeholder="Ganti oli, tune up, dsb."/></Field>
         <Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={draft.complaint} onChange={e => setDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Contoh: Rem bunyi srek, mesin brebet, tarikan gredek"/></Field>
-        <div className="grid gap-4 sm:grid-cols-3"><Field><FieldLabel>Biaya Jasa Servis (Rp)</FieldLabel><Input value={formatThousands(draft.serviceFee)} onChange={e => setDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field><Field><FieldLabel>Status</FieldLabel><Select value={draft.status} onValueChange={v => setDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field><Field><FieldLabel>Estimasi Selesai (jam)</FieldLabel><Input value={draft.eta} onChange={e => setDraft(d => ({ ...d, eta: e.target.value }))} placeholder="17.00"/></Field></div>
+        <div className="grid gap-4 sm:grid-cols-3"><Field><FieldLabel>Biaya Servis dari Tukang (Rp)</FieldLabel><Input value={formatThousands(draft.serviceFee)} onChange={e => setDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field><Field><FieldLabel>Status</FieldLabel><Select value={draft.status} onValueChange={v => setDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field><Field><FieldLabel>Estimasi Selesai (jam)</FieldLabel><Input value={draft.eta} onChange={e => setDraft(d => ({ ...d, eta: e.target.value }))} placeholder="17.00"/></Field></div>
         <PartsEditor parts={draft.parts} catalog={catalog} onChange={parts => setDraft(d => ({ ...d, parts }))}/>
     </FieldGroup><DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)}>Batal</Button><Button onClick={saveCreate}>Simpan Servis</Button></DialogFooter></DialogContent></Dialog>
     {editIdx !== null && <Dialog open onOpenChange={o => { if (!o) setEditIdx(null); }}><DialogContent><DialogHeader><DialogTitle>Perbarui Servis</DialogTitle><DialogDescription>{editDraft.id} · {editDraft.job}</DialogDescription></DialogHeader><FieldGroup>
-        <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={editDraft.complaint || ''} onChange={e => setEditDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Keluhan..."/></Field><Field><FieldLabel>Biaya Jasa Servis (Rp)</FieldLabel><Input value={formatThousands(editDraft.serviceFee)} onChange={e => setEditDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field></div>
+        <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={editDraft.complaint || ''} onChange={e => setEditDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Keluhan..."/></Field><Field><FieldLabel>Biaya Servis dari Tukang (Rp)</FieldLabel><Input value={formatThousands(editDraft.serviceFee)} onChange={e => setEditDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field></div>
         <Field><FieldLabel>Status</FieldLabel><Select value={editDraft.status} onValueChange={v => setEditDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
         <Field><FieldLabel>Progress ({editDraft.progress}%)</FieldLabel><div className="flex items-center gap-2"><input type="range" min="0" max="100" step="5" value={editDraft.progress} onChange={e => setEditDraft(d => ({ ...d, progress: Number(e.target.value) }))} className="h-2 flex-1 accent-[#dc2626]"/><Input type="number" min="0" max="100" value={editDraft.progress} onChange={e => setEditDraft(d => ({ ...d, progress: Number(e.target.value) }))} className="h-9 w-20 text-center"/></div></Field>
         <Field><FieldLabel>Estimasi Selesai</FieldLabel><Input value={editDraft.eta} onChange={e => setEditDraft(d => ({ ...d, eta: e.target.value }))}/></Field>

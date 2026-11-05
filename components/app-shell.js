@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { useTheme } from 'next-themes';
 import {
-    Bell, Boxes, ChevronDown, Clock3, CreditCard, HelpCircle, LogOut, Menu, Moon,
+    Bell, Boxes, ChevronDown, Clock3, CreditCard, HelpCircle, LayoutDashboard, LogOut, Menu, Moon,
     ReceiptText, Settings, ShoppingCart, Sun, Users, Wrench, X, Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ import { roleLabels, isOwner as checkOwner } from '@/lib/demo-auth';
 import { UserProvider, useUser } from '@/components/user-context';
 
 const ownerNav = [
-    ['Kasir / Terminal POS', '/kasir', ShoppingCart],
+    ['Dashboard', '/dashboard', LayoutDashboard],
     ['Penjualan & Transaksi', '/transaksi', ReceiptText],
     ['Stok & Inventori', '/stok', Boxes, [['Barang Masuk', '/barang-masuk'], ['Barang Keluar', '/barang-keluar']]],
     ['Servis & Perbaikan', '/servis', Wrench],
@@ -27,6 +27,7 @@ const ownerNav = [
 ];
 
 const kasirNav = [
+    ['Dashboard', '/dashboard', LayoutDashboard],
     ['Kasir / Terminal POS', '/kasir', ShoppingCart],
     ['Penjualan & Transaksi', '/transaksi', ReceiptText],
     ['Cek Stok & Rak', '/stok', Boxes],
@@ -34,7 +35,7 @@ const kasirNav = [
 ];
 
 const ownerMobileNav = [
-    ['Kasir', '/kasir'],
+    ['Dashboard', '/dashboard'],
     ['Transaksi', '/transaksi'],
     ['Stok', '/stok'],
     ['Masuk', '/barang-masuk'],
@@ -46,6 +47,7 @@ const ownerMobileNav = [
 ];
 
 const kasirMobileNav = [
+    ['Dashboard', '/dashboard'],
     ['Kasir POS', '/kasir'],
     ['Transaksi', '/transaksi'],
     ['Cek Stok', '/stok'],
@@ -112,7 +114,7 @@ function AppShellInternal({ children, user }) {
       open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
     )}>
       <div className="relative flex h-[76px] shrink-0 items-center justify-between border-b border-border px-4">
-        <Link href="/kasir" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2">
+        <Link href="/dashboard" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2">
             <span className="brand-mark scale-90"><span>DM</span></span>
             <div className="min-w-0">
                 <strong className="block truncate text-base font-extrabold tracking-tight">DIAN MOTOR</strong>

@@ -5,8 +5,8 @@ import { RoleGuard } from '@/components/role-guard';
 
 export default async function PaymentsPage() {
     const environment = midtransEnvironment();
-    const hasServerKey = Boolean(process.env.MIDTRANS_SERVER_KEY);
-    const hasClientKey = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY);
+    const hasServerKey = Boolean(process.env.MIDTRANS_SERVER_KEY && !process.env.MIDTRANS_SERVER_KEY.startsWith('your-') && process.env.MIDTRANS_SERVER_KEY !== 'your-server-key');
+    const hasClientKey = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && !process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY.startsWith('your-') && process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY !== 'your-client-key');
     let payments = [];
     let supabaseConnected = false;
     const supabase = await createClient();

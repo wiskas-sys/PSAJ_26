@@ -87,12 +87,15 @@ export default async function DashboardPage() {
                 </Card>
 
                 <Card className="rounded-[17px]">
-                    <CardHeader>
-                        <CardTitle>Perhatian Stok</CardTitle>
-                        <CardDescription>Produk yang perlu segera ditindaklanjuti</CardDescription>
+                    <CardHeader className="flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Perhatian Stok</CardTitle>
+                            <CardDescription>Produk yang perlu segera ditindaklanjuti</CardDescription>
+                        </div>
+                        {low.length > 0 && <Badge variant="destructive" className="font-mono text-[11px]">{low.length} Perlu Restok</Badge>}
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                        {low.map((p) => (
+                        {low.slice(0, 5).map((p) => (
                             <div key={p.id} className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
                                     <p className="truncate text-sm font-semibold">{p.name}</p>
@@ -103,8 +106,9 @@ export default async function DashboardPage() {
                                 <StockBadge stock={p.stock} minimum={p.minimumStock} />
                             </div>
                         ))}
+                        {low.length > 5 && <p className="py-1 text-center text-xs text-muted-foreground">+ {low.length - 5} produk lainnya membutuhkan restok</p>}
                         <Button nativeButton={false} render={<Link href="/stok" />} variant="outline" className="w-full">
-                            Lihat Semua Stok
+                            Lihat Semua di Stok &amp; Inventori ({low.length})
                         </Button>
                     </CardContent>
                 </Card>
