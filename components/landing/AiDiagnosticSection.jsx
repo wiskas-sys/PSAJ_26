@@ -22,12 +22,85 @@ import { company, whatsappLink } from "@/components/landing/data";
 
 const POPULAR_QUERIES = [
   { text: "Rem ku kok ora srek?", category: "Rem" },
+  { text: "Standart 2 ne miring, apa kudu diganti?", category: "Standar" },
   { text: "Mesin kemlotok pas anget", category: "Mesin" },
   { text: "Motor brebet pas digas pol", category: "Pengapian" },
   { text: "Stang goyang karo oleng pas nikung", category: "Kaki-kaki" },
   { text: "CVT matic gredek pas angkatan awal", category: "CVT" },
-  { text: "Motor angel distarter pas esuk", category: "Kelistrikan" },
 ];
+
+function renderFormattedText(text) {
+  if (!text) return null;
+  const paragraphs = text.split("\n\n");
+
+  return paragraphs.map((paragraph, pIdx) => {
+    const lines = paragraph.split("\n").map((l) => l.trim()).filter(Boolean);
+
+    return (
+      <div key={pIdx} className="space-y-1">
+        {lines.map((line, lIdx) => {
+          if (line.startsWith("•") || line.startsWith("-") || line.startsWith("* ")) {
+            const itemText = line.replace(/^[•\-*]\s*/, "");
+            return (
+              <div key={lIdx} className="flex items-start gap-2 pl-1.5 my-1 text-xs sm:text-sm">
+                <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                <div className="flex-1 leading-relaxed">{renderInlineTokens(itemText)}</div>
+              </div>
+            );
+          }
+
+          if (/^\d+\.\s/.test(line)) {
+            const num = line.match(/^\d+\./)[0];
+            const rest = line.replace(/^\d+\.\s*/, "");
+            return (
+              <div key={lIdx} className="flex items-start gap-2 pl-1.5 my-1 text-xs sm:text-sm">
+                <span className="font-bold text-primary shrink-0">{num}</span>
+                <div className="flex-1 leading-relaxed">{renderInlineTokens(rest)}</div>
+              </div>
+            );
+          }
+
+          return (
+            <p key={lIdx} className="text-xs sm:text-sm leading-relaxed">
+              {renderInlineTokens(line)}
+            </p>
+          );
+        })}
+      </div>
+    );
+  });
+}
+
+function renderInlineTokens(str) {
+  const parts = str.split(/(\*\*.*?\*\*|`.*?`|_.*?_)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={idx} className="font-bold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={idx}
+          className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith("_") && part.endsWith("_")) {
+      return (
+        <em key={idx} className="italic text-muted-foreground">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
+  });
+}
 
 export function AiDiagnosticSection() {
   const [query, setQuery] = useState("");
@@ -82,8 +155,8 @@ export function AiDiagnosticSection() {
     <Section
       id="ai-diagnosa"
       className="relative bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(220,38,38,0.1),rgba(255,255,255,0))]"
-      eyebrow="✨ TEKNOLOGI UNGGULAN PELANGGAN"
-      title="AI Problem Solving: Diagnosa Motor & Cek Stok Suku Cadang"
+      eyebrow="✨ KONSULTASI CERDAS PELANGGAN"
+      title="AI Problem Solving: Diagnosa Motor & Cek Suku Cadang"
       lead="Bingung motor terasa tidak enak? Ceritakan keluhan motormu dengan bahasa santai, Boso Jowo, maupun dialek Ngapak. AI Mekanik kami siap menganalisa penyebabnya dan mengecek ketersediaan suku cadang resmi di Dian Motor secara instan."
     >
       <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
@@ -117,8 +190,8 @@ export function AiDiagnosticSection() {
                   rows={3}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Ketik keluhan motormu di sini... (contoh: rem kok ora srek ya, motor brebet pas digas, mesin kemlotok)"
-                  className="w-full resize-none rounded-xl border border-border bg-background p-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+                  placeholder="Ketik keluhan motormu di sini... (contoh: rem ora srek, mesin kemlotok, brebet)"
+                  className="w-full resize-none rounded-xl border border-border bg-background p-3.5 text-xs sm:text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                   disabled={loading}
                 />
               </div>
@@ -192,23 +265,23 @@ export function AiDiagnosticSection() {
                   <Loader2 className="absolute -bottom-1 -right-1 size-5 animate-spin text-primary" />
                 </div>
                 <h4 className="text-base font-bold text-foreground">
-                  AI Mekanik Dian Motor Sedang Berpikir...
+                  Mas Dian sedang menganalisa keluhan motormu...
                 </h4>
                 <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-                  Menganalisa gejala kerusakan mesin, membaca bahasa keluhan, dan memeriksa ketersediaan suku cadang di rak bengkel.
+                  Menganalisa gejala kerusakan mesin, membaca bahasa daerah, dan mengecek suku cadang di rak bengkel Dian Motor.
                 </p>
               </div>
             ) : result ? (
-              <div className="space-y-5 animate-in fade-in-50 duration-200">
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
                 {/* Header Hasil */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-border">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
                   <div className="flex items-center gap-2.5">
-                    <span className="grid size-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
-                      <CheckCircle className="size-5" />
+                    <span className="grid size-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                      <CheckCircle className="size-4.5" />
                     </span>
                     <div>
                       <h4 className="text-sm font-bold text-foreground">
-                        Hasil Analisa Mekanik AI
+                        Hasil Diagnosa Mas Dian
                       </h4>
                       <p className="text-[11px] text-muted-foreground">
                         Keluhan: &ldquo;{result.originalQuery}&rdquo;
@@ -225,20 +298,20 @@ export function AiDiagnosticSection() {
                 </div>
 
                 {/* Konten Balasan */}
-                <div className="rounded-xl border border-border/80 bg-muted/30 p-4 text-xs sm:text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                  {result.reply}
+                <div className="rounded-xl border border-border/80 bg-muted/30 p-4 text-xs sm:text-sm leading-relaxed text-foreground space-y-2">
+                  {renderFormattedText(result.reply)}
                 </div>
 
                 {/* Tombol Aksi Lanjutan */}
-                <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                  <Button asChild className="flex-1 h-11 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  <Button asChild className="flex-1 h-10 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
                     <Link href={`/konsultasi-ai?q=${encodeURIComponent(result.originalQuery)}`}>
-                      <span>Lanjut Tanya &amp; Konsultasi Lengkap</span>
+                      <span>Lanjut Ngobrol di Halaman AI Penuh</span>
                       <ArrowRight className="size-3.5" />
                     </Link>
                   </Button>
 
-                  <Button asChild variant="outline" className="h-11 gap-2 rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-muted">
+                  <Button asChild variant="outline" className="h-10 gap-2 rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-muted">
                     <a
                       href={whatsappLink(
                         `Halo Bengkel Dian Motor, saya ingin konsultasi servis setelah cek di AI Diagnosa: "${result.originalQuery}"`
@@ -246,8 +319,8 @@ export function AiDiagnosticSection() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <MessageCircle className="size-4 text-emerald-500" />
-                      <span>Booking Servis via WA</span>
+                      <MessageCircle className="size-3.5 text-emerald-500" />
+                      <span>Booking Servis WA</span>
                     </a>
                   </Button>
                 </div>
@@ -262,7 +335,7 @@ export function AiDiagnosticSection() {
                   Ruang Diagnosa Siap Digunakan
                 </h4>
                 <p className="mt-2 text-xs sm:text-sm max-w-md leading-relaxed text-muted-foreground">
-                  Ketik keluhan yang kamu rasakan pada motormu di formulir sebelah kiri, atau klik salah satu tombol keluhan umum. AI kami akan memproses diagnosa serta ketersediaan komponen secara langsung!
+                  Ketik keluhan yang kamu rasakan pada motormu di formulir sebelah kiri, atau klik salah satu contoh keluhan. Mas Dian siap memberikan analisa teknis dan cek ketersediaan komponennya!
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
@@ -276,15 +349,15 @@ export function AiDiagnosticSection() {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="size-4 text-primary" />
-                    Solusi aman &amp; transparan
+                    Solusi hemat &amp; transparan
                   </span>
                 </div>
               </div>
             )}
 
             {/* Footer Kotak Hasil */}
-            <div className="mt-5 pt-4 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Sistem AI terhubung ke database inventori bengkel Dian Motor</span>
+            <div className="mt-5 pt-3.5 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Sistem AI terhubung langsung ke inventori resmi Dian Motor</span>
               <Link
                 href="/konsultasi-ai"
                 className="font-medium text-primary hover:underline inline-flex items-center gap-1"
@@ -301,4 +374,3 @@ export function AiDiagnosticSection() {
 }
 
 export default AiDiagnosticSection;
-

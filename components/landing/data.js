@@ -24,7 +24,6 @@ export const whatsappLink = (message = "") =>
 export const navLinks = [
   { label: "Tentang", href: "/#tentang" },
   { label: "Layanan", href: "/#layanan" },
-  { label: "AI Diagnosa Motor", href: "/konsultasi-ai", badge: "AI Baru" },
   { label: "Alur Servis", href: "/#alur" },
   { label: "Keunggulan", href: "/#keunggulan" },
   { label: "Testimoni", href: "/#testimoni" },
