@@ -144,14 +144,33 @@ export default function NotifikasiPage() {
       </PageHeader>
 
       <div className="mx-auto w-full max-w-4xl space-y-4">
-        {/* Filter Bar & Search */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Tabs Filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+        {/* Search Bar & Filter Tabs */}
+        <div className="flex flex-col gap-3">
+          {/* Row 1: Search Bar */}
+          <div className="relative w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari notifikasi berdasarkan nama barang, kode transaksi, plat nomor..."
+              className="w-full rounded-xl border border-border bg-card pl-10 pr-4 py-2 text-xs outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-xs placeholder:text-muted-foreground"
+            />
+          </div>
+
+          {/* Row 2: Tabs Filter with horizontal scroll support */}
+          <div
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+              }
+            }}
+            className="flex w-full items-center gap-2 overflow-x-auto pb-2 pt-0.5 touch-pan-x scrollbar-thin scrollbar-thumb-border scroll-smooth"
+          >
             <button
               type="button"
               onClick={() => setActiveTab('all')}
-              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
                 activeTab === 'all'
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -166,7 +185,7 @@ export default function NotifikasiPage() {
             <button
               type="button"
               onClick={() => setActiveTab('hampir_habis')}
-              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
                 activeTab === 'hampir_habis'
                   ? 'bg-amber-600 text-white shadow-sm'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -182,7 +201,7 @@ export default function NotifikasiPage() {
             <button
               type="button"
               onClick={() => setActiveTab('habis')}
-              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
                 activeTab === 'habis'
                   ? 'bg-red-600 text-white shadow-sm'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -198,7 +217,7 @@ export default function NotifikasiPage() {
             <button
               type="button"
               onClick={() => setActiveTab('transaksi_selesai')}
-              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
                 activeTab === 'transaksi_selesai'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -214,7 +233,7 @@ export default function NotifikasiPage() {
             <button
               type="button"
               onClick={() => setActiveTab('servis_siap_bayar')}
-              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
                 activeTab === 'servis_siap_bayar'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -226,18 +245,6 @@ export default function NotifikasiPage() {
                 {counts.servis}
               </span>
             </button>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative sm:w-64 shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari notifikasi..."
-              className="w-full rounded-xl border border-border bg-card pl-9 pr-3 py-1.5 text-xs outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-            />
           </div>
         </div>
 

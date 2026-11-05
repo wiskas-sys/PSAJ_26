@@ -37,9 +37,16 @@ export function StockFlowOverview({ type }) {
     const accent = incoming ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-500';
     const amount = incoming ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500';
     return <div className="flex flex-col gap-5">
-        <PageHeader title={`Barang ${incoming ? 'Masuk' : 'Keluar'}`} description={incoming ? 'Setiap penambahan stok tercatat otomatis di mutasi dan informasi stok.' : 'Setiap pengurangan stok tercatat otomatis di mutasi dan informasi stok.'}>
-            <Button onClick={() => setBulkOpen(true)}><FileSpreadsheet data-icon="inline-start"/>Impor Excel Barang {incoming ? 'Masuk' : 'Keluar'}</Button>
-            <Button variant="outline" onClick={() => router.push('/stok')}><Boxes data-icon="inline-start"/>Buka Cek Stok</Button>
+        <PageHeader
+            title={`Barang ${incoming ? 'Masuk' : 'Keluar'}`}
+            description={incoming
+                ? 'Monitoring penambahan stok barang secara real-time dari riwayat restock dan penerimaan.'
+                : 'Monitoring riwayat mutasi barang keluar otomatis dari transaksi kasir dan servis bengkel.'
+            }
+        >
+            <Button variant="outline" onClick={() => router.push('/stok')}>
+                <Boxes data-icon="inline-start"/>Buka Cek Stok
+            </Button>
         </PageHeader>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -50,7 +57,7 @@ export function StockFlowOverview({ type }) {
             <Card className="rounded-[17px]">
                 <CardHeader className="border-b border-border">
                     <CardTitle className="flex items-center gap-2"><History className="size-4"/>Mutasi Terbaru</CardTitle>
-                    <CardDescription>{incoming ? 'Penerimaan barang langsung tercatat tanpa perlu mengisi formulir.' : 'Barang keluar langsung tercatat tanpa perlu mengisi formulir.'}</CardDescription>
+                    <CardDescription>{incoming ? 'Log mutasi penambahan stok dari restock bengkel.' : 'Log mutasi pengurangan stok otomatis dari aktivitas transaksi kasir dan servis motor.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="border-b border-border p-3.5"><div className="input-with-icon"><Search className="size-4"/><Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari barang, nomor mutasi, atau referensi..." className="h-10"/></div></div>
@@ -89,6 +96,6 @@ export function StockFlowOverview({ type }) {
                 </CardContent>
             </Card>
         </div>
-        <StockMovementBulkDialog open={bulkOpen} onOpenChange={setBulkOpen} type={type} products={catalog} onDone={() => { setCatalog(getProducts()); setLogs(getMovements()); }} />
+        
     </div>;
 }

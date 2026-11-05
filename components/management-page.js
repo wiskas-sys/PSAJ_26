@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Download, Eye, MoreHorizontal, Pencil, Plus, Printer, Search, Trash2 } from 'lucide-react';
+import { Download, Eye, LockKeyhole, MoreHorizontal, Pencil, Plus, Printer, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -87,12 +87,65 @@ function downloadCsv(title, head, rows) {
 }
 
 function DetailSheet({ title, row, open, onClose }) {
+    const [showPassword, setShowPassword] = useState(false);
     const head = headers[title] ?? [];
     const name = row?.[0] ?? '';
-    return <Sheet open={open} onOpenChange={o => { if (!o)
-            onClose(); }}><SheetContent side="right"><SheetHeader><SheetTitle>{name}</SheetTitle><SheetDescription>{title} · Detail data</SheetDescription></SheetHeader>
-        <div className="grid gap-2 px-4">{head.map((h, j) => <div key={h} className="flex items-center justify-between gap-3 border-b border-dashed border-border pb-2 text-sm last:border-0"><span className="text-muted-foreground">{h}</span><strong className="text-right text-[13px]">{row?.[j]}</strong></div>)}</div>
-    </SheetContent></Sheet>;
+    const email = row?.[1] ?? '';
+    const password = row?.[4] || (email.toLowerCase().includes('kasir') ? 'kasir123' : 'owner123');
+
+    return (
+        <Sheet open={open} onOpenChange={o => { if (!o) onClose(); }}>
+            <SheetContent side="right">
+                <SheetHeader>
+                    <SheetTitle>{name}</SheetTitle>
+                    <SheetDescription>{title} · Detail data</SheetDescription>
+                </SheetHeader>
+                <div className="grid gap-2 px-4">
+                    {head.map((h, j) => (
+                        <div key={h} className="flex items-center justify-between gap-3 border-b border-dashed border-border pb-2 text-sm last:border-0">
+                            <span className="text-muted-foreground">{h}</span>
+                            <strong className="text-right text-[13px]">{row?.[j]}</strong>
+                        </div>
+                    ))}
+                    {title === 'Pengguna' && (
+                        <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <LockKeyhole className="size-3.5 text-primary" />
+                                    Password Login Akun
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(password);
+                                        toast.success(`Password untuk ${email} disalin!`);
+                                    }}
+                                    className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                                >
+                                    Salin Password
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg bg-card border border-border px-3 py-2">
+                                <span className="font-mono text-sm font-bold tracking-wider text-foreground">
+                                    {showPassword ? password : '••••••••'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    className="text-xs text-muted-foreground hover:text-foreground font-semibold cursor-pointer"
+                                >
+                                    {showPassword ? 'Sembunyi' : 'Lihat'}
+                                </button>
+                            </div>
+                            <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
+                                Password resmi ini digunakan untuk login di halaman masuk (<code>/login</code>). Bermanfaat jika karyawan atau pemilik lupa password.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </SheetContent>
+        </Sheet>
+    );
 }
 
 function StrukSheet({ row, open, onClose }) {
@@ -168,7 +221,17 @@ export function ManagementPage({ title, description, addLabel, rows: rowsProp })
       <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b border-border">{head.map(h => <th key={h} className="px-3.5 py-2.5 text-left font-medium uppercase tracking-wide">{h}</th>)}<th className="px-3.5 py-2.5 text-right font-medium uppercase tracking-wide">Aksi</th></tr></thead><tbody>{sorted.map(r => { const origIdx = rows.indexOf(r); return <tr key={origIdx} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">{r.map((c, j) => {
                     const last = j === r.length - 1;
                     return <td key={j} className="px-3.5 py-3.5 align-middle">{last ? statusPill(c) : <CellContent title={title} c={c} j={j}/>}</td>;
-                })}<td className="px-3.5 py-3.5 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44 p-1.5"><DropdownMenuItem className="h-9" onClick={() => setDetailIdx(origIdx)}><Eye className="size-4 text-muted-foreground"/>Lihat Detail</DropdownMenuItem>{title === 'Transaksi' ? <DropdownMenuItem className="h-9" onClick={() => setStrukIdx(origIdx)}><Printer className="size-4 text-muted-foreground"/>Cetak Struk</DropdownMenuItem> : readOnly ? null : <><DropdownMenuItem className="h-9" onClick={() => startEdit(origIdx)}><Pencil className="size-4 text-muted-foreground"/>Edit</DropdownMenuItem><DropdownMenuSeparator/><DropdownMenuItem variant="destructive" className="h-9 text-red-500" onClick={() => setDeleting(origIdx)}><Trash2 className="size-4 text-red-500"/>Hapus</DropdownMenuItem></>}</DropdownMenuContent></DropdownMenu></td></tr>; })}</tbody></table></div>
+                })}<td className="px-3.5 py-3.5 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44 p-1.5"><DropdownMenuItem className="h-9" onClick={() => setDetailIdx(origIdx)}><Eye className="size-4 text-muted-foreground"/>Lihat Detail</DropdownMenuItem>
+{title === 'Pengguna' && (
+    <DropdownMenuItem className="h-9" onClick={() => {
+        const pwd = r[4] || (r[1]?.toLowerCase().includes('kasir') ? 'kasir123' : 'owner123');
+        navigator.clipboard.writeText(pwd);
+        toast.success(`Password untuk ${r[1]} disalin: ${pwd}`);
+    }}>
+        <LockKeyhole className="size-4 text-muted-foreground" />
+        Salin Password
+    </DropdownMenuItem>
+)}{title === 'Transaksi' ? <DropdownMenuItem className="h-9" onClick={() => setStrukIdx(origIdx)}><Printer className="size-4 text-muted-foreground"/>Cetak Struk</DropdownMenuItem> : readOnly ? null : <><DropdownMenuItem className="h-9" onClick={() => startEdit(origIdx)}><Pencil className="size-4 text-muted-foreground"/>Edit</DropdownMenuItem><DropdownMenuSeparator/><DropdownMenuItem variant="destructive" className="h-9 text-red-500" onClick={() => setDeleting(origIdx)}><Trash2 className="size-4 text-red-500"/>Hapus</DropdownMenuItem></>}</DropdownMenuContent></DropdownMenu></td></tr>; })}</tbody></table></div>
       {!sorted.length && <p className="py-16 text-center text-muted-foreground">{hasQuery ? 'Tidak ada data yang cocok dengan pencarian.' : `Belum ada data ${title.toLowerCase()}.`}</p>}
     </div>
     {detailIdx !== null && <DetailSheet title={title} row={rows[detailIdx]} open onClose={() => setDetailIdx(null)}/>}

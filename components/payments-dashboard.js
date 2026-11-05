@@ -227,7 +227,7 @@ export function PaymentsDashboard({ initialPayments = [], environment, configure
                     <div className="input-with-icon min-w-0 flex-1"><Search className="size-4"/><Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari ID transaksi, pelanggan, atau metode..." className="h-10"/></div>
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="flex gap-1.5">{TABS.map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${tab === value ? 'bg-primary text-white' : 'border border-border bg-card text-muted-foreground hover:text-foreground'}`}>{label}<span className="rounded-full bg-black/10 px-1.5 font-mono text-[10px] dark:bg-white/10">{counts[value]}</span></button>)}</div>
-                        <Select value={method} onValueChange={setMethod}><SelectTrigger className="h-9 w-fit min-w-[150px] bg-card"><SelectValue placeholder="Semua Metode"/></SelectTrigger><SelectContent><SelectGroup><SelectItem value="ALL">Semua Metode</SelectItem>{methods.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectGroup></SelectContent></Select>
+                        <Select value={method} onValueChange={setMethod}><SelectTrigger className="h-9 w-fit min-w-[190px] bg-card"><SelectValue placeholder="Semua Metode"/></SelectTrigger><SelectContent className="min-w-[240px] w-auto whitespace-nowrap"><SelectGroup><SelectItem value="ALL">Semua Metode</SelectItem>{methods.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectGroup></SelectContent></Select>
                     </div>
                 </div>
                 <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[760px]"><thead><tr className="border-b border-border">{[['ID Transaksi', 'left'], ['Tanggal', 'left'], ['Pelanggan', 'left'], ['Metode', 'left'], ['Status', 'left'], ['Jumlah', 'right'], ['Aksi', 'right']].map(([h, align]) => <th key={h} className={`px-3.5 py-2.5 font-medium uppercase tracking-wide ${align === 'right' ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr></thead>
@@ -249,7 +249,34 @@ export function PaymentsDashboard({ initialPayments = [], environment, configure
             </CardContent>
         </Card>
 
-        <GatewayConfigCard environment={environment} hasServerKey={hasServerKey} hasClientKey={hasClientKey} supabaseConnected={supabaseConnected} webhookPath="/api/midtrans/notification"/>
+        <Card className="rounded-[17px] border border-border bg-card">
+            <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-foreground">
+                    <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Kanal Pembayaran Resmi Dian Motor
+                </CardTitle>
+                <CardDescription>
+                    Metode transaksi yang aktif digunakan pelanggan di kasir dan servis bengkel.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-3 pt-0">
+                <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-3.5">
+                    <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">Transfer Bank Resmi</p>
+                    <p className="text-base font-extrabold mt-1 text-foreground font-mono">BCA: 0461782991</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">A.N. DIAN MOTOR</p>
+                </div>
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3.5">
+                    <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">QRIS Standar Nasional</p>
+                    <p className="text-base font-extrabold mt-1 text-foreground">QRIS Dinamis</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Nominal otomatis pas di kasir</p>
+                </div>
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3.5">
+                    <p className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Kas Tunai POS</p>
+                    <p className="text-base font-extrabold mt-1 text-foreground">Kasir Fisik</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Kalkulasi kembalian otomatis</p>
+                </div>
+            </CardContent>
+        </Card>
 
         <Dialog open={!!selected} onOpenChange={o => { if (!o) setSelected(null); }}>
             <DialogContent className="sm:max-w-lg">

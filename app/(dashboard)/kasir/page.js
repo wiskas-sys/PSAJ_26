@@ -62,6 +62,14 @@ export default function PosPage() {
     const [busy, setBusy] = useState(false);
     const [showQris, setShowQris] = useState(false);
     const [pendingService, setPendingService] = useState(null);
+    const [pendingList, setPendingList] = useState([]);
+    const [quickServiceOpen, setQuickServiceOpen] = useState(false);
+    const [quickServiceDraft, setQuickServiceDraft] = useState({
+        customer: '',
+        plate: '',
+        job: 'Servis Rutin & Ganti Oli',
+        serviceFee: 50000,
+    });
     const [serviceModalOpen, setServiceModalOpen] = useState(false);
     const [serviceMethod, setServiceMethod] = useState('Tunai');
     const [servicePaidAmount, setServicePaidAmount] = useState(0);
@@ -328,7 +336,23 @@ export default function PosPage() {
         }
     }
     function resetPos() { setCart([]); setDiscount(0); setPaid(0); setSuccess(false); setGwOrderId(null); setOrderCode(''); setShowStruk(false); setBusy(false); committedRef.current.clear(); idempotencyRef.current.clear(); }
-    return <div className="flex flex-col gap-5"><PageHeader title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
+    return <div className="flex flex-col gap-5"><PageHeader title="Kasir" description="Transaksi penjualan cepat dan akurat.">
+        <Button
+          onClick={() => {
+            setQuickServiceDraft({
+              customer: '',
+              plate: '',
+              job: 'Servis Rutin & Ganti Oli',
+              serviceFee: 50000,
+            });
+            setQuickServiceOpen(true);
+          }}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-9 gap-1.5 shadow-sm text-xs cursor-pointer"
+        >
+          <Wrench className="size-3.5" />
+          <span>+ Input Servis Selesai</span>
+        </Button>
+      </PageHeader>
       {pendingService && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-400 shadow-sm animate-in fade-in-50">
           <div className="flex items-center gap-3">
