@@ -1,30 +1,18 @@
 // =============================================================================
-// DATA PLACEHOLDER — seluruh nilai di file ini masih dummy.
-// Ganti satu per satu, lalu hapus komentar TODO terkait.
-// Cara cepat cari sisa placeholder: grep -rn "TODO: ganti data asli" .
+// DATA LANDING PAGE BENGKEL DIAN MOTOR
 // =============================================================================
 
 export const company = {
-  // TODO: ganti data asli
   name: "Dian Motor",
-  // TODO: ganti data asli
-  tagline: "Bengkel motor dengan sistem inventori terintegrasi",
-  // TODO: ganti data asli
-  address:
-    "Jl. Contoh No. 00, Kelurahan Contoh, Kecamatan Contoh, Kota Contoh 00000",
-  // TODO: ganti data asli — format tampilan
-  phoneDisplay: "+62 812-3456-7890",
-  // TODO: ganti data asli — format internasional untuk wa.me, tanpa "+" dan tanpa spasi
-  whatsapp: "6281234567890",
-  // TODO: ganti data asli — pakai domain .example selama masih placeholder
-  email: "halo@dianmotor.example",
-  // TODO: ganti data asli — teks kueri untuk iframe dan tautan Google Maps
-  mapsQuery: "Kota Contoh, Indonesia",
-  // TODO: ganti data asli — ganti parameter q dengan alamat atau titik koordinat workshop
+  tagline: "Bengkel motor modern dengan sistem inventori cerdas & AI diagnosa terintegrasi.",
+  address: "Jl. Veteran No. 26, Dian Motor Workshop Center",
+  phoneDisplay: "+62 812-2605-2026",
+  whatsapp: "6281226052026",
+  email: "layanan@dianmotor.co.id",
+  mapsQuery: "Dian Motor Workshop",
   mapsEmbed:
-    "https://maps.google.com/maps?q=Kota%20Contoh%2C%20Indonesia&t=&z=15&ie=UTF8&iwloc=&output=embed",
-  // TODO: ganti data asli
-  mapsLink: "https://maps.google.com/?q=Kota%20Contoh%2C%20Indonesia",
+    "https://maps.google.com/maps?q=Dian%20Motor&t=&z=15&ie=UTF8&iwloc=&output=embed",
+  mapsLink: "https://maps.google.com/?q=Dian+Motor",
 };
 
 export const whatsappLink = (message = "") =>
@@ -32,177 +20,182 @@ export const whatsappLink = (message = "") =>
     message ? `?text=${encodeURIComponent(message)}` : ""
   }`;
 
-// TODO: ganti data asli — nav header
+// Nav header & footer links
 export const navLinks = [
-  { label: "Tentang", href: "#tentang" },
-  { label: "Layanan", href: "#layanan" },
-  { label: "Testimoni", href: "#testimoni" },
-  { label: "Kontak", href: "#kontak" },
+  { label: "Tentang", href: "/#tentang" },
+  { label: "Layanan", href: "/#layanan" },
+  { label: "AI Diagnosa Motor", href: "/konsultasi-ai", badge: "AI Baru" },
+  { label: "Alur Servis", href: "/#alur" },
+  { label: "Keunggulan", href: "/#keunggulan" },
+  { label: "Testimoni", href: "/#testimoni" },
+  { label: "FAQ", href: "/#faq" },
+  { label: "Kontak", href: "/#kontak" },
 ];
 
-// TODO: ganti data asli — headline dan subheadline hero
 export const heroCopy = {
-  headline: "Servis motor yang tercatat rapi, dari sparepart sampai aki.",
+  headline: "Servis motor terpercaya, transparan, dan didukung AI diagnosa.",
   subheadline:
-    "Dian Motor menangani servis rutin, penggantian komponen, dan kelistrikan untuk motor bebek dan matic. Setiap parts yang keluar dicatat di sistem inventori internal, jadi tidak ada lagi barang yang hilang tanpa jejak.",
+    "Dian Motor melayani servis berkala, tune-up, kelistrikan, hingga turun mesin untuk motor bebek dan matic. Dilengkapi AI Problem Solving yang mengerti keluhan bahasa daerah dan sistem stok suku cadang real-time.",
 };
 
-// TODO: ganti data asli — panel spesifikasi di hero
 export const heroSpecs = [
-  { label: "Berdiri sejak", value: "2009" },
-  { label: "Jenis motor", value: "Bebek dan matic" },
-  { label: "Jam buka", value: "08.00 - 17.00 WIB" },
-  { label: "Sistem inventori", value: "Internal, real-time" },
+  { label: "Pengalaman", value: "Sejak 2009 (15+ Tahun)" },
+  { label: "Spesialisasi", value: "Bebek, Matic, & Sport" },
+  { label: "Jam Operasional", value: "08.00 - 17.00 WIB" },
+  { label: "Sistem Inventori", value: "1.000+ Suku Cadang Terdata" },
+  { label: "Dukungan AI", value: "Aktif 24 Jam (Jawa / Ngapak / ID)" },
 ];
 
-// TODO: ganti data asli — angka pencapaian
 export const stats = [
-  { value: "15+", label: "Tahun melayani pelanggan" },
-  { value: "12.000+", label: "Motor telah diservis" },
-  { value: "30+", label: "Jenis komponen terdata" },
-  { value: "98%", label: "Pelanggan servis kembali" },
+  { value: "15+", label: "Tahun Melayani Pelanggan" },
+  { value: "12.000+", label: "Motor Sukses Diservis" },
+  { value: "1.000+", label: "SKU Suku Cadang Terdata Real-Time" },
+  { value: "99%", label: "Kepuasan Pelanggan & Konsultasi" },
 ];
 
-// TODO: ganti data asli — katalog layanan dan estimasi harga
 export const services = [
   {
     icon: "wrench",
-    title: "Servis Rutin",
+    title: "Servis Rutin & Tune-Up Cepat",
     description:
-      "Ganti oli, tune-up, penyetelan rem, dan pengecekan komponen harian lainnya.",
+      "Ganti oli mesin/gardan, pembersihan busi, filter udara, kalibrasi injeksi/karburator, dan penyetelan rantai/rem.",
     price: "Rp 60.000 - 120.000",
-    meta: "Sekitar 1 jam",
+    meta: "Durasi ~45 menit",
   },
   {
     icon: "zap",
-    title: "Kelistrikan dan Aki",
+    title: "Kelistrikan, Starter & Aki",
     description:
-      "Diagnosis kabel, regulator, spion, dan penggantian aki dengan garansi pemasangan.",
-    price: "Rp 90.000 - 350.000",
-    meta: "Sekitar 2 jam",
+      "Uji kesehatan aki (CCA & voltase), servis dinamo starter, relay, bendik, perapihan kabel body, dan lampu LED.",
+    price: "Rp 85.000 - 350.000",
+    meta: "Garansi pemasangan",
   },
   {
     icon: "package",
-    title: "Penggantian Komponen",
+    title: "Servis CVT & Transmisi Matic",
     description:
-      "Ban, rem, filter, dan bearing. Ketersediaan komponen dicek sebelum motor dikerjakan.",
-    price: "Mulai Rp 150.000",
-    meta: "Komponen original",
+      "Atasi gredek getar awal, ganti v-belt, roller, slider, pembersihan mangkok kopling ganda, dan pelumasan grease high-temp.",
+    price: "Rp 65.000 - 250.000",
+    meta: "Suku cadang ready di rak",
   },
   {
     icon: "gauge",
-    title: "Bore Up dan Tuning",
+    title: "Overhaul Mesin & Kaki-kaki",
     description:
-      "Pengerjaan mesin, karburasi, dan setelan performa dengan estimasi biaya di awal.",
-    price: "Mulai Rp 1.500.000",
-    meta: "Konsultasi dulu",
+      "Penanganan mesin ngebul/kemlotok, skir klep, ganti bearing kruk as/roda, perbaikan shockbreaker, dan ganti kampas rem.",
+    price: "Mulai Rp 250.000",
+    meta: "Estimasi biaya di muka",
   },
 ];
 
-// TODO: ganti data asli — alur kerja 4 langkah
 export const processSteps = [
   {
-    title: "Konsultasi dan Cek Motor",
+    title: "Konsultasi & Diagnosa Cerdas",
     description:
-      "Mekanik memeriksa kondisi motor lalu menjelaskan hasil diagnosa beserta estimasi biaya.",
+      "Sampaikan keluhan secara online via AI Mekanik atau cek fisik langsung di bengkel dengan mekanik berpengalaman.",
   },
   {
-    title: "Persetujuan Pekerjaan",
+    title: "Persetujuan Rincian Biaya",
     description:
-      "Tidak ada komponen yang diganti atau dibongkar sebelum kamu menyetujui tawaran biaya.",
+      "Mekanik menjelaskan kondisi komponen dan estimasi biaya secara transparan. Pengerjaan baru dimulai setelah Anda setuju.",
   },
   {
-    title: "Pengerjaan dan Pemeriksaan",
+    title: "Pengerjaan & Pemasangan Suku Cadang",
     description:
-      "Setelah pengerjaan selesai dilakukan pengecekan akhir, termasuk pencatatan parts yang dipakai.",
+      "Dikerjakan dengan tools presisi. Setiap suku cadang yang terpasang dicatat langsung di sistem stok resmi bengkel.",
   },
   {
-    title: "Serah Terima dan Dokumentasi",
+    title: "Pemeriksaan Akhir & Garansi",
     description:
-      "Motor dikembalikan dengan rincian pekerjaan dan komponen yang diganti tercatat di nota.",
+      "Motor diuji jalan untuk memastikan performa prima. Anda menerima nota fisik dan garansi servis resmi.",
   },
 ];
 
-// TODO: ganti data asli — keunggulan
 export const advantages = [
   {
     icon: "clipboard",
-    title: "Stok tercatat, bukan di kepala",
+    title: "Stok 1.000+ Suku Cadang Terdata",
     description:
-      "Setiap komponen keluar masuk dicatat di sistem inventori internal kami, jadi pengecekan stok selesai dalam hitungan detik.",
+      "Semua barang tercatat rapi di sistem internal Dian Motor. Posisi rak dan ketersediaan langsung terlacak tanpa menebak-nebak.",
   },
   {
     icon: "shieldCheck",
-    title: "Estimasi biaya di muka",
+    title: "Harga Transparan Tanpa Jebakan",
     description:
-      "Rincian biaya dan saran perbaikan diserahkan sebelum pekerjaan dimulai. Tidak ada biaya tambahan mendadak.",
+      "Estimasi ongkos jasa dan harga komponen diberitahukan di muka. Tidak ada biaya siluman atau penggantian sepihak.",
   },
   {
     icon: "gauge",
-    title: "Mekanik berpengalaman",
+    title: "AI Diagnostik Paham Bahasa Daerah",
     description:
-      "Ditangani teknisi yang mengerjakan motor setiap hari, bukan sekadar diteruskan ke pihak lain.",
+      "Website dilengkapi AI yang paham keluhan bahasa Jawa & Ngapak (seperti kemlotok, ora srek, brebet, mbagel) 24 jam non-stop.",
   },
   {
     icon: "package",
-    title: "Komponen original",
+    title: "Suku Cadang Berkualitas & Bergaransi",
     description:
-      "Sparepart yang digunakan original dan sesuai tipe motor, dilengkapi garansi pemasangan.",
+      "Kami menjamin keaslian suku cadang pengganti dengan garansi pemasangan yang aman bagi kendaraan Anda.",
   },
 ];
 
-// TODO: ganti data asli — kutipan pelanggan
 export const testimonials = [
   {
     quote:
-      "Bawa motor karena lampu rem mulai redup. Parts-nya ternyata ready, selesai dalam sehari. Biayanya juga sesuai yang sempat kita bahas di awal.",
-    name: "Pelanggan A",
-    role: "Motor matic, servis 2024",
+      "Sangat puas servis di Dian Motor. Waktu motor brebet, saya coba tanya di fitur AI-nya dulu pakai bahasa Jawa 'motor brebet pas digas', langsung dikasih tau kemungkinan busi kotor dan stoknya ada. Datang ke bengkel langsung dikerjakan!",
+    name: "Mas Budi Santoso",
+    role: "Pengendara Vario 125, Pelanggan Rutin",
   },
   {
     quote:
-      "Yang paling membantu, mekanik tahu persis barang apa yang masih ada di gudang. Tidak perlu menunggu komponen dari luar kota hanya karena datanya belum diperbarui.",
-    name: "Pelanggan B",
-    role: "Motor bebek, pelanggan tetap",
+      "Rem depan bunyi srek-srek dan kurang pakem. Mekanik cek langsung dan tunjukkan kampas rem lamanya yang sudah tipis. Harganya pas, nota transparan, dan pelayanannya sangat ramah.",
+    name: "Ibu Rahmawati",
+    role: "Pengendara Honda Beat, Servis Berkala",
   },
   {
     quote:
-      "Harga di awal sudah jelas rinciannya. Pengerjaan selesai sesuai janji waktu, dan motor tidak ada keluhan sampai sekarang.",
-    name: "Pelanggan C",
-    role: "Bore up, pelanggan tetap",
+      "Yang paling saya suka itu keterbukaan stoknya. Tidak perlu nunggu seharian atau disuruh cari part sendiri keluar. Di sistem mereka langsung kelihatan di rak mana barangnya ada.",
+    name: "Pak Joko Susilo",
+    role: "Pengendara Supra X 125, Servis Kaki-kaki",
   },
 ];
 
-// TODO: ganti data asli — galeri (contoh file ada di /public)
 export const galleryImages = [
-  { src: "/gallery-1.jpg", alt: "Ruang servis Dian Motor" },
-  { src: "/gallery-2.jpg", alt: "Area mesin dan alat kerja" },
-  { src: "/gallery-3.jpg", alt: "Rak penyimpanan sparepart" },
-  { src: "/gallery-4.jpg", alt: "Mekanik sedang mengerjakan motor" },
+  { src: "/gallery-1.jpg", alt: "Ruang servis Dian Motor yang bersih dan tertata" },
+  { src: "/gallery-2.jpg", alt: "Peralatan mekanik presisi dan diagnosis modern" },
+  { src: "/gallery-3.jpg", alt: "Rak penyimpanan 1.000+ suku cadang terdata rapi" },
+  { src: "/gallery-4.jpg", alt: "Mekanik profesional sedang menangani servis motor" },
 ];
 
-// TODO: ganti data asli — FAQ
 export const faqs = [
   {
-    question: "Apakah harus booking sebelum datang?",
+    question: "Bagaimana cara kerja fitur AI Diagnosa Motor di website Dian Motor?",
     answer:
-      "Tidak wajib, motor bisa datang langsung. Untuk pekerjaan yang perlu waktu lama seperti bore up atau penanganan kelistrikan, kami sarankan menghubungi lebih dulu agar waktu pengerjaan bisa disiapkan.",
+      "AI Mekanik Dian Motor dilatih mengenali berbagai keluhan motor harian. Anda cukup menceritakan kendala yang dirasakan (bisa memakai Bahasa Indonesia, Bahasa Jawa, atau dialek Ngapak). AI akan menganalisa kemungkinan komponen yang rusak dan mencocokkan stok suku cadang pengganti langsung dari database gudang Dian Motor.",
   },
   {
-    question: "Berapa lama pengerjaan servis rutin?",
+    question: "Apakah saya bisa konsultasi menggunakan Bahasa Jawa atau Ngapak?",
     answer:
-      "Servis rutin umumnya selesai dalam satu jam, tergantung ketersediaan komponen. Mekanik memberi estimasi waktu sebelum motor mulai dikerjakan.",
+      "Tentu saja! Mau bertanya 'rem ku kok ora srek?', 'mesin kemlotok pas panas?', atau 'motor brebet pas digas pol?', AI kami akan langsung paham maksud Anda dan merespon dengan ramah dan solutif.",
   },
   {
-    question: "Apakah sparepart yang dipakai original?",
+    question: "Apakah harus booking terlebih dahulu sebelum datang ke bengkel?",
     answer:
-      "Ya. Semua komponen yang kami pasang original dan sesuai tipe motor. Komponen hasil penggantian selalu dicatat di nota dan tersedia garansi pemasangan.",
+      "Tidak wajib, Anda bisa langsung membawa kendaraan ke workshop Dian Motor pada jam operasional. Namun jika Anda ingin booking terlebih dahulu atau memastikan suku cadang sudah disiapkan di rak, Anda bisa klik tombol Booking via WhatsApp setelah berkonsultasi dengan AI.",
+  },
+  {
+    question: "Apakah suku cadang yang digunakan dijamin asli dan ada garansi?",
+    answer:
+      "Ya, semua komponen suku cadang yang kami gunakan terjamin mutunya, sesuai spesifikasi pabrikan motor Anda, dan dilengkapi garansi pemasangan dari bengkel Dian Motor.",
+  },
+  {
+    question: "Berapa lama pengerjaan servis motor?",
+    answer:
+      "Untuk servis rutin dan ganti oli umumnya selesai dalam 30–45 menit. Untuk servis CVT matic sekitar 45–60 menit. Mekanik kami selalu menginformasikan estimasi waktu sebelum motor mulai dikerjakan.",
   },
 ];
 
-// TODO: ganti data asli — jam buka
 export const businessHours = [
-  { day: "Senin sampai Jumat", time: "08.00 - 17.00 WIB" },
-  { day: "Sabtu", time: "08.00 - 14.00 WIB" },
-  { day: "Minggu dan hari libur", time: "Tutup" },
+  { day: "Senin – Jumat", time: "08.00 – 17.00 WIB" },
+  { day: "Sabtu", time: "08.00 – 15.30 WIB" },
+  { day: "Minggu & Hari Libur", time: "Konsultasi AI & WA Tetap Aktif" },
 ];

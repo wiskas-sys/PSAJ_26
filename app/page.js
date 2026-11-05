@@ -1,4 +1,5 @@
 import { About } from "@/components/landing/About";
+import { AiDiagnosticSection } from "@/components/landing/AiDiagnosticSection";
 import { Contact } from "@/components/landing/Contact";
 import { FAQ } from "@/components/landing/FAQ";
 import { Footer } from "@/components/landing/Footer";
@@ -13,6 +14,7 @@ import { WhyUs } from "@/components/landing/WhyUs";
 
 /**
  * Company profile publik Dian Motor untuk peran Pengunjung.
+ * Lengkap dengan AI Problem Solving & Diagnosa Kerusakan Suku Cadang (ID/Jawa/Ngapak).
  * Akses internal staf/kasir/owner dilindungi melalui verifikasi 2 pola di footer.
  */
 export default function HomePage() {
@@ -22,10 +24,11 @@ export default function HomePage() {
       <main className="flex-1">
         <Hero />
         <StatsBar />
-        <About />
+        <AiDiagnosticSection />
         <Services />
         <ProcessSteps />
         <WhyUs />
+        <About />
         <Testimonials />
         <Gallery />
         <FAQ />
