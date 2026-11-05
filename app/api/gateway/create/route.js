@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateQrisDataUrl, generateUniqueNominal } from '@/lib/qris';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request) {
   try {
@@ -25,9 +25,9 @@ export async function POST(request) {
     });
 
     // 3. Simpan pembayaran berstatus pending ke database Supabase
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     if (supabase) {
-      await supabase.from('payments').upsert(
+      const { error: upsertErr } = await supabase.from('payments').upsert(
         {
           order_id: orderId,
           amount: totalAmount,
@@ -44,6 +44,9 @@ export async function POST(request) {
         },
         { onConflict: 'order_id' }
       );
+      if (upsertErr) {
+        console.error('Error upserting pending payment:', upsertErr);
+      }
     }
 
     const host = request.headers.get('host') || 'localhost:3000';

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import crypto from 'crypto';
 
 const KASIR_USER_ID = 'b18e8f2b-da9e-47cd-86f9-1565d1ad2adb';
@@ -13,7 +13,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Order ID wajib diisi.' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     if (!supabase) {
       return NextResponse.json({ error: 'Database tidak terhubung.' }, { status: 500 });
     }
