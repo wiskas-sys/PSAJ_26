@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ReceiptSheet } from '@/components/receipt-sheet';
+import { QrisPaymentDialog } from '@/components/qris-payment-dialog';
 
 function initials(name) {
     return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
@@ -45,6 +46,7 @@ export default function PosPage() {
     const [showStruk, setShowStruk] = useState(false);
     const [orderCode, setOrderCode] = useState('');
     const [busy, setBusy] = useState(false);
+    const [showQris, setShowQris] = useState(false);
     const committedRef = useRef(new Set());
     const idempotencyRef = useRef(new Map());
     const categories = useMemo(() => ['Semua', ...new Set(catalog.map(p => p.category).filter(Boolean))], [catalog]);
@@ -138,12 +140,23 @@ export default function PosPage() {
         if (!cart.length) return toast.error('Keranjang masih kosong.');
         if (shortage.length) { toast.error('Stok berubah sejak barang masuk keranjang.'); return; }
         const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY);
-        if (midtransEnabled && (method === 'QRIS' || method === 'Transfer')) { setBusy(true); return payViaSnap(); }
+        if (method === 'QRIS') { setShowQris(true); return; }
+        if (midtransEnabled && method === 'Transfer') { setBusy(true); return payViaSnap(); }
         if (paid < total) return toast.error('Jumlah bayar belum mencukupi.');
         setBusy(true);
         setGwOrderId(null);
         if (await commitSale(null)) { setBusy(false); setSuccess(true); }
         else setBusy(false);
+    }
+    function handleQrisSuccess({ orderId, totalAmount, method: paidMethod }) {
+        setShowQris(false);
+        setGwOrderId(orderId);
+        setOrderCode(orderId);
+        setPaid(totalAmount);
+        committedRef.current.add(orderId);
+        listStockProducts().then(rows => setCatalog(rows)).catch(() => {});
+        setSuccess(true);
+        setShowStruk(true);
     }
     function resetPos() { setCart([]); setDiscount(0); setPaid(0); setSuccess(false); setGwOrderId(null); setOrderCode(''); setShowStruk(false); setBusy(false); committedRef.current.clear(); idempotencyRef.current.clear(); }
     return <div className="flex flex-col gap-5"><PageHeader title="Kasir" description="Transaksi penjualan cepat dan akurat."></PageHeader>
@@ -166,15 +179,22 @@ export default function PosPage() {
           <div className="flex items-center gap-3"><label htmlFor="discount" className="flex-1 text-sm text-muted-foreground">Diskon</label><input id="discount" type="number" value={discount || ''} onChange={e => setDiscount(Number(e.target.value))} className="h-9 w-28 rounded-lg border border-border bg-transparent px-2.5 text-right text-sm outline-none focus:border-primary"/></div>
           <div className="flex items-end justify-between border-t border-dashed border-border pt-3"><span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Total</span><strong className="text-[25px] leading-none text-primary">{rupiah(total)}</strong></div>
           <Select value={method} onValueChange={setMethod}><SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{['Tunai', 'Transfer', 'QRIS'].map(x => <SelectItem value={x} key={x}>{x}</SelectItem>)}</SelectGroup></SelectContent></Select>
-          <input type="number" value={paid || ''} onChange={e => setPaid(Number(e.target.value))} placeholder="Jumlah Bayar" className="h-11 w-full rounded-xl border border-border bg-transparent px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/>
-          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong className={change > 0 ? 'text-emerald-400' : ''}>{rupiah(change)}</strong></div>
+          {method === 'QRIS' ? (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+              ⚡ <strong>QRIS Dinamis Aktif:</strong> Klik tombol <strong>Bayar</strong> untuk membuat QR code dan nominal unik otomatis.
+            </div>
+          ) : (
+            <input type="number" value={paid || ''} onChange={e => setPaid(Number(e.target.value))} placeholder="Jumlah Bayar" className="h-11 w-full rounded-xl border border-border bg-transparent px-3.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/>
+          )}
+          {method !== 'QRIS' && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong className={change > 0 ? 'text-emerald-400' : ''}>{rupiah(change)}</strong></div>}
           {shortage.length > 0 && <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-600 dark:text-red-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>Stok berubah sejak keranjang diisi: {shortage.map(i => `${i.product.name} (sisa ${catalog.find(p => p.id === i.product.id)?.stock ?? 0})`).join(', ')}.</p>}
           <div className="grid grid-cols-[1fr_1.7fr] gap-2"><Button variant="outline" size="lg" onClick={() => { setCart([]); setDiscount(0); setPaid(0); }} disabled={busy}>Batal</Button><Button size="lg" onClick={pay} disabled={shortage.length > 0 || busy}>{busy ? 'Memproses...' : 'Bayar'}</Button></div>
         </div>
       </CardContent></Card>
     </div>
     <Dialog open={success} onOpenChange={o => { if (!o) resetPos(); }}><DialogContent className="rounded-2xl"><DialogHeader><div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary"><CheckCircle2 className="size-9"/></div><DialogTitle className="text-center text-2xl font-bold">Transaksi Berhasil</DialogTitle><DialogDescription className="text-center">Pembayaran tersimpan dan stok sudah dikurangkan.{gwOrderId && ' Pembayaran nontunai masih menunggu verifikasi.'}</DialogDescription></DialogHeader><div className="rounded-xl bg-muted p-5"><div className="flex justify-between text-sm"><span className="text-muted-foreground">Nomor</span><strong className="font-mono">{orderCode}</strong></div>{gwOrderId && <div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Metode</span><strong>Midtrans Snap · {method}</strong></div>}<div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Total</span><strong>{rupiah(total)}</strong></div>{!gwOrderId && <><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Bayar</span><strong>{rupiah(paid)}</strong></div><div className="mt-2 flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong>{rupiah(change)}</strong></div></>}</div><DialogFooter className="grid sm:grid-cols-2"><Button variant="outline" onClick={() => setShowStruk(true)}>Cetak Struk</Button><Button onClick={resetPos}>Transaksi Baru</Button></DialogFooter></DialogContent></Dialog>
-    {showStruk && <ReceiptSheet open onClose={() => setShowStruk(false)} orderId={orderCode} date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} items={cart} subtotal={subtotal} discount={discount} total={total} method={gwOrderId ? `Midtrans Snap · ${method}` : method} customer={customerName} paid={paid} change={change}/>}
+    {showStruk && <ReceiptSheet open onClose={() => setShowStruk(false)} orderId={orderCode} date={new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} items={cart} subtotal={subtotal} discount={discount} total={total} method={method === 'QRIS' ? 'QRIS Dinamis' : (gwOrderId ? `Midtrans Snap · ${method}` : method)} customer={customerName} paid={paid} change={change}/>}
+    <QrisPaymentDialog open={showQris} onClose={() => setShowQris(false)} amount={total} cartItems={cart} customer={{ id: customer, name: customerName }} onSuccess={handleQrisSuccess}/>
   </div>;
 }
 

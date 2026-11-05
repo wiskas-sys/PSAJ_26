@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -98,7 +99,25 @@ export function PaymentsDashboard({ initialPayments = [], environment, configure
     const [selected, setSelected] = useState(null);
     const [syncing, setSyncing] = useState(false);
     const [checking, setChecking] = useState('');
-    useEffect(() => subscribeSales(() => setSales(getSales())), []);
+    useEffect(() => {
+        const unsub = subscribeSales(() => setSales(getSales()));
+        let channel;
+        try {
+            const supabase = createClient();
+            channel = supabase.channel('payments-live-refresh')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+                    router.refresh();
+                })
+                .subscribe();
+        } catch (e) {}
+        return () => {
+            if (unsub) unsub();
+            if (channel) {
+                const supabase = createClient();
+                supabase.removeChannel(channel);
+            }
+        };
+    }, [router]);
 
     const rows = useMemo(() => {
         const serverCodes = new Set(initialPayments.map(p => p.order_id));
