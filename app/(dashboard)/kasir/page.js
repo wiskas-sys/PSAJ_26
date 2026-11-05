@@ -167,7 +167,14 @@ export default function PosPage() {
         if (shortage.length) { toast.error('Stok berubah sejak barang masuk keranjang.'); return; }
         const midtransEnabled = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && !process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY.startsWith('your-') && process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY !== 'your-client-key');
         if (method === 'QRIS') { setShowQris(true); return; }
-        if (midtransEnabled && method === 'Transfer') { setBusy(true); return payViaSnap(); }
+        if (method === 'Transfer') {
+            if (midtransEnabled) { setBusy(true); return payViaSnap(); }
+            setBusy(true);
+            setGwOrderId(null);
+            if (await commitSale(null)) { setBusy(false); setSuccess(true); }
+            else setBusy(false);
+            return;
+        }
         if (paid < total) return toast.error('Jumlah bayar belum mencukupi.');
         setBusy(true);
         setGwOrderId(null);
@@ -261,7 +268,8 @@ export default function PosPage() {
 
         setServiceBusy(true);
         try {
-            const change = Math.max(0, servicePaidAmount - totalBill);
+            const finalPaid = serviceMethod === 'Transfer BCA' ? totalBill : (servicePaidAmount || totalBill);
+            const change = Math.max(0, finalPaid - totalBill);
             const res = await fetch('/api/servis/bayar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -273,7 +281,7 @@ export default function PosPage() {
                     job: pendingService.job,
                     totalBill,
                     method: serviceMethod,
-                    paidAmount: servicePaidAmount || totalBill,
+                    paidAmount: finalPaid,
                     changeAmount: change,
                 }),
             });
@@ -305,7 +313,7 @@ export default function PosPage() {
                 discount: 0,
                 total: totalBill,
                 method: serviceMethod,
-                paid: servicePaidAmount || totalBill,
+                paid: finalPaid,
                 change,
             });
 
@@ -375,12 +383,36 @@ export default function PosPage() {
           <Select value={method} onValueChange={setMethod}><SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup>{['Tunai', 'Transfer', 'QRIS'].map(x => <SelectItem value={x} key={x}>{x}</SelectItem>)}</SelectGroup></SelectContent></Select>
           {method === 'QRIS' ? (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
-              ⚡ <strong>QRIS Dinamis Aktif:</strong> Klik tombol <strong>Bayar</strong> untuk membuat QR code dan nominal unik otomatis.
+              ⚡ <strong>QRIS Dinamis Aktif:</strong> Klik tombol <strong>Bayar</strong> untuk membuat QR code dan nominal pas otomatis.
+            </div>
+          ) : method === 'Transfer' ? (
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-foreground">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-blue-400 flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-blue-400 animate-pulse"/>
+                  Transfer Bank BCA
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText('0461782991');
+                    toast.success('No. Rekening BCA berhasil disalin!');
+                  }}
+                  className="rounded bg-blue-500/20 px-2 py-0.5 text-[11px] font-bold text-blue-300 hover:bg-blue-500/30 transition-colors"
+                >
+                  Salin Rekening
+                </button>
+              </div>
+              <p className="font-mono text-base font-extrabold tracking-wider text-white">0461782991</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">A.N: <strong className="text-foreground">DIAN MOTOR (BCA)</strong></p>
+              <div className="mt-2 rounded-lg bg-blue-950/40 p-2 text-[10px] text-blue-200 border border-blue-500/20">
+                💡 Cek mutasi masuk di BCA Mobile / KlikBCA, lalu klik tombol <strong>Bayar</strong> untuk mencatat lunas.
+              </div>
             </div>
           ) : (
             <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">Rp</span><input type="text" inputMode="numeric" value={formatThousands(paid)} onChange={e => setPaid(parseThousands(e.target.value))} placeholder="Jumlah Bayar (contoh: 50.000)" className="h-11 w-full rounded-xl border border-border bg-transparent pl-10 pr-3.5 text-sm font-semibold outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/></div>
           )}
-          {method !== 'QRIS' && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong className={change > 0 ? 'text-emerald-400' : ''}>{rupiah(change)}</strong></div>}
+          {method === 'Tunai' && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Kembalian</span><strong className={change > 0 ? 'text-emerald-400' : ''}>{rupiah(change)}</strong></div>}
           {shortage.length > 0 && <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-600 dark:text-red-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>Stok berubah sejak keranjang diisi: {shortage.map(i => `${i.product.name} (sisa ${catalog.find(p => p.id === i.product.id)?.stock ?? 0})`).join(', ')}.</p>}
           <div className="grid grid-cols-[1fr_1.7fr] gap-2"><Button variant="outline" size="lg" onClick={() => { setCart([]); setDiscount(0); setPaid(0); }} disabled={busy}>Batal</Button><Button size="lg" onClick={pay} disabled={shortage.length > 0 || busy}>{busy ? 'Memproses...' : 'Bayar'}</Button></div>
         </div>
@@ -458,31 +490,71 @@ export default function PosPage() {
 
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-semibold text-muted-foreground">Metode Pembayaran</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <button
                                 type="button"
                                 onClick={() => setServiceMethod('Tunai')}
                                 className={cn(
-                                    "flex items-center justify-center gap-2 rounded-xl border p-3 font-semibold text-sm transition-all",
+                                    "flex items-center justify-center gap-1.5 rounded-xl border p-2.5 font-semibold text-xs transition-all",
                                     serviceMethod === 'Tunai' ? "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold" : "border-border hover:bg-muted"
                                 )}
                             >
-                                <CheckCircle2 className={cn("size-4", serviceMethod === 'Tunai' ? "text-emerald-400" : "opacity-30")} />
-                                Tunai (Cash)
+                                <CheckCircle2 className={cn("size-3.5", serviceMethod === 'Tunai' ? "text-emerald-400" : "opacity-30")} />
+                                Tunai
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setServiceMethod('Transfer BCA');
+                                    setServicePaidAmount(Number(pendingService.totalBill || pendingService.serviceFee || 35000));
+                                }}
+                                className={cn(
+                                    "flex items-center justify-center gap-1.5 rounded-xl border p-2.5 font-semibold text-xs transition-all",
+                                    serviceMethod === 'Transfer BCA' ? "border-blue-500 bg-blue-500/10 text-blue-400 font-bold" : "border-border hover:bg-muted"
+                                )}
+                            >
+                                <CheckCircle2 className={cn("size-3.5", serviceMethod === 'Transfer BCA' ? "text-blue-400" : "opacity-30")} />
+                                Transfer BCA
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setServiceMethod('QRIS')}
                                 className={cn(
-                                    "flex items-center justify-center gap-2 rounded-xl border p-3 font-semibold text-sm transition-all",
+                                    "flex items-center justify-center gap-1.5 rounded-xl border p-2.5 font-semibold text-xs transition-all",
                                     serviceMethod === 'QRIS' ? "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold" : "border-border hover:bg-muted"
                                 )}
                             >
-                                <CheckCircle2 className={cn("size-4", serviceMethod === 'QRIS' ? "text-emerald-400" : "opacity-30")} />
-                                QRIS Dinamis
+                                <CheckCircle2 className={cn("size-3.5", serviceMethod === 'QRIS' ? "text-emerald-400" : "opacity-30")} />
+                                QRIS
                             </button>
                         </div>
                     </div>
+
+                    {serviceMethod === 'Transfer BCA' && (
+                        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-foreground">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="font-bold text-blue-400 flex items-center gap-1.5">
+                                    <span className="size-2 rounded-full bg-blue-400 animate-pulse"/>
+                                    Rekening Transfer Bank BCA
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText('0461782991');
+                                        toast.success('No. Rekening BCA disalin!');
+                                    }}
+                                    className="rounded bg-blue-500/20 px-2 py-0.5 text-[11px] font-bold text-blue-300 hover:bg-blue-500/30"
+                                >
+                                    Salin Rekening
+                                </button>
+                            </div>
+                            <p className="font-mono text-base font-extrabold tracking-wider text-white">0461782991</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">A.N: <strong className="text-foreground">DIAN MOTOR (BCA)</strong></p>
+                            <div className="mt-2.5 rounded-lg bg-blue-950/40 p-2 text-[10px] text-blue-200 border border-blue-500/20">
+                                💡 Pelanggan transfer sesuai nominal tagihan. Cek mutasi BCA Mobile, lalu klik <strong>Konfirmasi & Cetak Struk</strong>.
+                            </div>
+                        </div>
+                    )}
 
                     {serviceMethod === 'Tunai' && (
                         <div className="flex flex-col gap-2">
