@@ -43,13 +43,9 @@ export default async function DashboardLayout({ children }) {
         } catch (e) {}
     }
 
-    // Default fallback jika belum login
+    // Jika belum login, proteksi dan arahkan ke halaman login
     if (!user) {
-        user = {
-            email: 'kasir@dianmotor.co.id',
-            name: 'Kasir Shift Dian Motor',
-            role: 'kasir',
-        };
+        redirect('/login');
     }
 
     return (

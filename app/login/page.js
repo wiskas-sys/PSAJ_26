@@ -1,5 +1,6 @@
 'use client';
 import { useActionState, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Boxes, ChevronRight, LockKeyhole, Mail, Moon, ReceiptText, ShieldCheck, Sun, Wrench } from 'lucide-react';
 import { loginAction } from './actions';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,7 @@ export default function LoginPage() {
             <Button type="submit" size="lg" disabled={pending} className="relative h-[51px] overflow-hidden rounded-xl text-[13px] font-bold tracking-[.055em] shadow-[0_2px_8px_rgba(220,38,38,.18)]">{pending ? <><ChevronRight className="size-4 animate-spin"/>MEMPROSES...</> : <><span>MASUK KE SISTEM</span><ChevronRight className="size-4"/></>}</Button>
           </form>
         </div>
-        <nav className="mt-4 flex flex-wrap items-center justify-center gap-2.5 font-mono text-[9px] text-muted-foreground"><a href="mailto:support@dianmotor.co.id" className="hover:text-primary">Bantuan teknis</a><span className="text-muted-foreground/40">•</span><span>DIAN MOTOR © 2026</span></nav>
+        <nav className="mt-4 flex flex-wrap items-center justify-center gap-2.5 font-mono text-[9px] text-muted-foreground"><Link href="/" className="hover:text-primary transition-colors">← Beranda Profil</Link><span className="text-muted-foreground/40">•</span><a href="mailto:support@dianmotor.co.id" className="hover:text-primary">Bantuan teknis</a><span className="text-muted-foreground/40">•</span><span>DIAN MOTOR © 2026</span></nav>
       </div>
     </section>
   </main>;
