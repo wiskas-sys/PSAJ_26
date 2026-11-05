@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownToLine, ArrowUpFromLine, Boxes, History, Search, TriangleAlert } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Boxes, FileSpreadsheet, History, Search, TriangleAlert } from 'lucide-react';
+import { StockMovementBulkDialog } from '@/components/stock-movement-bulk-dialog';
 import { dateLabel, kindLabel, rupiah, stockStatus, todayISO } from '@/lib/demo-data';
 import { getMovements, getProducts, subscribeStock } from '@/lib/stock-store';
 import { PageHeader } from '@/components/page-header';
@@ -18,6 +19,7 @@ export function StockFlowOverview({ type }) {
     const [catalog, setCatalog] = useState(() => getProducts());
     const [logs, setLogs] = useState(() => getMovements());
     const [query, setQuery] = useState('');
+    const [bulkOpen, setBulkOpen] = useState(false);
     useEffect(() => subscribeStock(() => { setCatalog(getProducts()); setLogs(getMovements()); }), []);
     const flow = useMemo(() => logs.filter(m => m.type === type), [logs, type]);
     const shown = useMemo(() => {
@@ -36,6 +38,7 @@ export function StockFlowOverview({ type }) {
     const amount = incoming ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500';
     return <div className="flex flex-col gap-5">
         <PageHeader title={`Barang ${incoming ? 'Masuk' : 'Keluar'}`} description={incoming ? 'Setiap penambahan stok tercatat otomatis di mutasi dan informasi stok.' : 'Setiap pengurangan stok tercatat otomatis di mutasi dan informasi stok.'}>
+            <Button onClick={() => setBulkOpen(true)}><FileSpreadsheet data-icon="inline-start"/>Impor Excel Barang {incoming ? 'Masuk' : 'Keluar'}</Button>
             <Button variant="outline" onClick={() => router.push('/stok')}><Boxes data-icon="inline-start"/>Buka Cek Stok</Button>
         </PageHeader>
 
@@ -86,5 +89,6 @@ export function StockFlowOverview({ type }) {
                 </CardContent>
             </Card>
         </div>
+        <StockMovementBulkDialog open={bulkOpen} onOpenChange={setBulkOpen} type={type} products={catalog} onDone={() => { setCatalog(getProducts()); setLogs(getMovements()); }} />
     </div>;
 }

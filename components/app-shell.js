@@ -21,7 +21,7 @@ const ownerNav = [
     ['Stok & Inventori', '/stok', Boxes, [['Barang Masuk', '/barang-masuk'], ['Barang Keluar', '/barang-keluar']]],
     ['Servis & Perbaikan', '/servis', Wrench],
     ['Pembayaran & Gateway', '/pembayaran', CreditCard],
-    ['Laporan Keuangan & Shift', '/laporan', Clock3],
+    ['Laporan Keuangan', '/laporan', Clock3],
     ['Kelola Pengguna', '/pengguna', Users],
     ['Pengaturan Sistem', '/pengaturan', Settings],
 ];

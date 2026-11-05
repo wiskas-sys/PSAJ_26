@@ -13,6 +13,7 @@ import {
   ExternalLink,
   CheckCircle2,
   Filter,
+  Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/page-header';
@@ -68,9 +69,10 @@ export default function NotifikasiPage() {
     const hampirHabis = notifications.filter((n) => n.category === 'hampir_habis').length;
     const habis = notifications.filter((n) => n.category === 'habis').length;
     const transaksi = notifications.filter((n) => n.category === 'transaksi_selesai').length;
+    const servis = notifications.filter((n) => n.category === 'servis_siap_bayar').length;
     const unread = notifications.filter((n) => !n.read).length;
 
-    return { all, hampirHabis, habis, transaksi, unread };
+    return { all, hampirHabis, habis, transaksi, servis, unread };
   }, [notifications]);
 
   // Filter notifikasi sesuai tab aktif dan pencarian
@@ -80,6 +82,7 @@ export default function NotifikasiPage() {
       if (activeTab === 'hampir_habis' && item.category !== 'hampir_habis') return false;
       if (activeTab === 'habis' && item.category !== 'habis') return false;
       if (activeTab === 'transaksi_selesai' && item.category !== 'transaksi_selesai') return false;
+      if (activeTab === 'servis_siap_bayar' && item.category !== 'servis_siap_bayar') return false;
 
       // 2. Filter Pencarian Teks
       if (searchQuery.trim()) {
@@ -207,6 +210,22 @@ export default function NotifikasiPage() {
                 {counts.transaksi}
               </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('servis_siap_bayar')}
+              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer shrink-0 ${
+                activeTab === 'servis_siap_bayar'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <Wrench className="size-3.5 text-blue-500" />
+              <span>Servis Siap Bayar</span>
+              <span className="rounded-full bg-blue-500/20 px-1.5 py-0.2 text-[10px] text-blue-400">
+                {counts.servis}
+              </span>
+            </button>
           </div>
 
           {/* Search Bar */}
@@ -265,6 +284,7 @@ export default function NotifikasiPage() {
               const isHampirHabis = n.category === 'hampir_habis';
               const isHabis = n.category === 'habis';
               const isTrx = n.category === 'transaksi_selesai';
+              const isServis = n.category === 'servis_siap_bayar';
 
               return (
                 <article
@@ -284,12 +304,15 @@ export default function NotifikasiPage() {
                           ? 'border-red-500/30 bg-red-500/10 text-red-500'
                           : isHampirHabis
                           ? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
+                          : isServis
+                          ? 'border-blue-500/30 bg-blue-500/10 text-blue-500'
                           : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
                       }`}
                     >
                       {isHabis && <PackageX className="size-5" />}
                       {isHampirHabis && <TriangleAlert className="size-5" />}
                       {isTrx && <ReceiptText className="size-5" />}
+                      {isServis && <Wrench className="size-5" />}
                     </span>
 
                     {/* Content */}
@@ -301,6 +324,8 @@ export default function NotifikasiPage() {
                               ? 'bg-red-500/20 text-red-600 dark:text-red-400'
                               : isHampirHabis
                               ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                              : isServis
+                              ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
                               : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                           }`}
                         >

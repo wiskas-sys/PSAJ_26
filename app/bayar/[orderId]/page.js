@@ -349,3 +349,4 @@ export default function CustomerPayPage({ params: paramsPromise }) {
     </div>
   );
 }
+

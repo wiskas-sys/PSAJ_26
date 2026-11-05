@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CircleCheck, CircleX, FileSpreadsheet, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { rupiah, todayISO, units } from '@/lib/demo-data';
+import { parseMoneyAutoRupiah } from '@/lib/money-format';
 import { bulkImportStockProducts, listStockSuppliers } from '@/lib/supabase/stock-products';
 import { openingSchema, bulkRowSchema, fieldErrors } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ export function StockBulkImportDialog({ open, onOpenChange, products, onDone }) 
         const rows = lines.map(({ line, no }) => {
             const cells = splitRow(line).map(c => c.trim());
             const money = (v) => (`${v ?? ''}`.replace(/[^\d]/g, '') || '0');
-            const candidate = { code: cells[0] ?? '', name: cells[1] ?? '', category: cells[2] || 'Lainnya', unit: cells[3] || units[0], stock: cells[4] ?? '0', minimumStock: cells[5] ?? '0', purchasePrice: money(cells[6]), sellingPrice: money(cells[7]) };
+            const candidate = { code: cells[0] ?? '', name: cells[1] ?? '', category: cells[2] || 'Lainnya', unit: cells[3] || units[0], stock: cells[4] ?? '0', minimumStock: cells[5] ?? '0', purchasePrice: parseMoneyAutoRupiah(cells[6]), sellingPrice: parseMoneyAutoRupiah(cells[7]) };
             const result = bulkRowSchema.safeParse(candidate);
             const duplicate = result.success && seen.has(candidate.code.toLowerCase());
             if (result.success) seen.add(candidate.code.toLowerCase());
@@ -70,6 +71,7 @@ export function StockBulkImportDialog({ open, onOpenChange, products, onDone }) 
             <div className="grid gap-4">
                 <div className="rounded-xl border border-border bg-muted/60 p-3">
                     <p className="flex items-center gap-2 text-xs font-semibold"><FileSpreadsheet className="size-4 text-muted-foreground"/>Urutan kolom: {HEADERS.map((h, i) => <span key={h} className="rounded-md bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{i + 1}. {h}</span>)}</p>
+                    <p className="mt-1.5 text-[11px] text-primary font-medium">💡 <strong>Auto-konfigurasi Rupiah:</strong> Jika pekerja mengetik harga tanpa '000' (misal tulis 5 atau 150), sistem otomatis menyesuaikan menjadi Rp 5.000 atau Rp 150.000.</p>
                 </div>
                 <Field><FieldLabel htmlFor="bi-text">Data dari Excel</FieldLabel><Textarea id="bi-text" value={text} onChange={e => setText(e.target.value)} placeholder="Tempel baris dari Excel di sini..." rows={7} className="font-mono text-xs leading-relaxed"/><FieldDescription>Pemisah otomatis: Tab (Excel), titik koma, atau koma. Baris judul otomatis dilewati.</FieldDescription></Field>
                 <div className="grid gap-3 rounded-xl border border-primary/25 bg-primary/5 p-3 sm:grid-cols-3">

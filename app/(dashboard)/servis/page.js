@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { BadgeCheck, Clock3, Plus, Trash2, Wrench, Zap } from 'lucide-react';
-import { nextServiceCode, todayISO } from '@/lib/demo-data';
+import { useRouter } from 'next/navigation';
+import { BadgeCheck, Clock3, Plus, ShoppingCart, Trash2, Wrench, Zap } from 'lucide-react';
+import { nextServiceCode, rupiah, todayISO } from '@/lib/demo-data';
+import { formatThousands, parseThousands } from '@/lib/money-format';
 import { applyPartDelta, totalParts } from '@/lib/service-parts';
 import { listStockProducts } from '@/lib/supabase/stock-products';
 import { createClient } from '@/lib/supabase/client';
@@ -16,7 +18,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 
 const STATUS = ['Menunggu', 'Dikerjakan', 'Selesai'];
 const SERVICES_KEY = 'dian-motor-services';
-const emptyOrder = () => ({ id: '', customer: '', phone: '', plate: '', brand: '', job: '', status: 'Menunggu', progress: 0, eta: '—', parts: [] });
+const emptyOrder = () => ({ id: '', customer: '', phone: '', plate: '', brand: '', complaint: '', job: '', serviceFee: 35000, status: 'Menunggu', progress: 0, eta: '—', parts: [] });
 
 function readServices() {
     try {
@@ -40,10 +42,10 @@ function PartsEditor({ parts, catalog, onChange }) {
                 const p = catalog.find(x => x.id === v);
                 if (!p) return;
                 const existing = parts.findIndex(x => x.productId === p.id);
-                onChange(existing === -1 ? [...parts, { productId: p.id, productCode: p.code, productName: p.name, unit: p.unit, quantity: 1 }] : parts.map((x, k) => k === existing ? { ...x, quantity: x.quantity + 1 } : x));
+                onChange(existing === -1 ? [...parts, { productId: p.id, productCode: p.code, productName: p.name, unit: p.unit, sellingPrice: p.sellingPrice || 0, quantity: 1 }] : parts.map((x, k) => k === existing ? { ...x, quantity: x.quantity + 1 } : x));
             }}>
                 <SelectTrigger className="h-9 w-48 bg-card"><SelectValue placeholder="Tambah sparepart..."/></SelectTrigger>
-                <SelectContent><SelectGroup>{catalog.filter(p => p.stock > 0).map(p => <SelectItem key={p.id} value={p.id}>{p.code} — {p.name} ({p.stock} {p.unit})</SelectItem>)}</SelectGroup></SelectContent>
+                <SelectContent><SelectGroup>{catalog.filter(p => p.stock > 0).map(p => <SelectItem key={p.id} value={p.id}>{p.code} — {p.name} ({p.stock} {p.unit} · {rupiah(p.sellingPrice)})</SelectItem>)}</SelectGroup></SelectContent>
             </Select>
         </div>
         {parts.length > 0
@@ -51,6 +53,7 @@ function PartsEditor({ parts, catalog, onChange }) {
                 <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold">{part.productName}</p><p className="font-mono text-[10px] text-muted-foreground">{part.productCode}</p></div>
                 <Input type="number" min="1" value={part.quantity} onChange={e => onChange(parts.map((x, k) => k === i ? { ...x, quantity: Math.max(1, Math.trunc(Number(e.target.value) || 1)) } : x))} className="h-8 w-16 text-right" aria-label={`Jumlah ${part.productName}`}/>
                 <small className="text-[11px] text-muted-foreground">{part.unit}</small>
+                <span className="font-mono text-xs font-bold text-foreground">{rupiah((part.sellingPrice || 0) * (part.quantity || 1))}</span>
                 <button type="button" onClick={() => onChange(parts.filter((_, k) => k !== i))} className="text-red-500 hover:text-red-400" aria-label={`Hapus ${part.productName}`}><Trash2 className="size-3.5"/></button>
             </li>)}</ul>
             : <p className="mt-2 text-[11px] text-muted-foreground">Belum ada sparepart. Stok dipotong saat servis disimpan.</p>}
@@ -58,6 +61,7 @@ function PartsEditor({ parts, catalog, onChange }) {
 }
 
 export default function Page() {
+    const router = useRouter();
     const [orders, setOrders] = useState(() => SEED_SERVICES.map(o => ({ ...o })));
     const [catalog, setCatalog] = useState([]);
     const [createOpen, setCreateOpen] = useState(false);
@@ -118,18 +122,35 @@ export default function Page() {
         else toast.success('Servis dibatalkan.');
         setDeleteIdx(null);
     }
+    function sendToKasir(service) {
+        try {
+            const raw = window.localStorage.getItem('pending_service_orders');
+            const list = raw ? JSON.parse(raw) : [];
+            const nextList = [service, ...list.filter(x => x.id !== service.id)];
+            window.localStorage.setItem('pending_service_orders', JSON.stringify(nextList));
+        } catch (e) {}
+        toast.success(`Servis ${service.id} siap dibayar di kasir!`);
+        router.push(`/kasir?serviceId=${service.id}`);
+    }
     const tag = (s) => s === 'Selesai' ? 'stock-chip' : s === 'Dikerjakan' ? 'stock-chip low' : 'stock-chip';
     return <div className="flex flex-col gap-5"><PageHeader title="Servis" description="Pantau pekerjaan bengkel dari masuk hingga diambil."> <Button onClick={() => setCreateOpen(true)}><Plus data-icon="inline-start"/>Catat Servis</Button></PageHeader>
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(([label, value, note, Icon]) => <div key={label} className="metric-card"><div className="flex items-start justify-between"><p className="text-sm text-muted-foreground">{label}</p><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span></div><strong className="mt-1 block text-2xl font-bold">{value}</strong><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>)}</section>
-    <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{orders.map((o, i) => <div key={o.id} className="surface p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] text-muted-foreground">{o.id}</p><h2 className="mt-1 text-[15px] font-bold">{o.job}</h2></div><span className={tag(o.status)}>{o.status.toUpperCase()}</span></div><div className="mt-3 rounded-xl bg-muted p-3"><div className="flex justify-between"><span className="font-mono text-[11px]">{o.plate}</span><small className="text-muted-foreground">{o.brand}</small></div><p className="mt-1 text-sm font-semibold">{o.customer}</p><small className="font-mono text-[10px] text-muted-foreground">{o.phone}</small></div><div className="mt-3 flex justify-between text-xs"><span className="text-muted-foreground">Estimasi selesai</span><strong className="font-mono">{o.eta} WIB</strong></div><div className="progress-track mt-2"><span style={{ width: `${o.progress}%` }}/></div>{(o.parts?.length ?? 0) > 0 && <p className="mt-2 flex flex-wrap gap-1">{o.parts.map(p => <span key={`${p.productId}-${p.productName}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.quantity}× {p.productCode}</span>)}</p>}<div className="mt-4 flex justify-end gap-2"><Button variant={o.status === 'Selesai' ? 'outline' : 'default'} size="sm" onClick={() => { setEditIdx(i); setEditDraft({ ...o }); }}>{o.status === 'Selesai' ? 'Detail' : 'Perbarui Servis'}</Button><Button variant="ghost" size="sm" className="text-red-500 hover:text-red-400" onClick={() => setDeleteIdx(i)}><Trash2 data-icon="inline-start"/>Batal</Button></div></div>)}</section>
+    <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{orders.map((o, i) => {
+        const partsTotal = (o.parts || []).reduce((sum, p) => sum + (p.sellingPrice || 0) * (p.quantity || 1), 0);
+        const fee = Number(o.serviceFee || 0);
+        const totalBill = fee + partsTotal;
+        return (<div key={o.id} className="surface p-4 flex flex-col justify-between"><div><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] text-muted-foreground">{o.id}</p><h2 className="mt-1 text-[15px] font-bold">{o.job}</h2></div><span className={tag(o.status)}>{o.status.toUpperCase()}</span></div>{o.complaint && <p className="mt-2 text-xs italic text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">Keluhan: &ldquo;{o.complaint}&rdquo;</p>}<div className="mt-3 rounded-xl bg-muted p-3"><div className="flex justify-between"><span className="font-mono text-[11px] font-semibold">{o.plate}</span><small className="text-muted-foreground">{o.brand}</small></div><p className="mt-1 text-sm font-semibold">{o.customer}</p><small className="font-mono text-[10px] text-muted-foreground">{o.phone}</small></div><div className="mt-3 flex justify-between text-xs"><span className="text-muted-foreground">Estimasi selesai</span><strong className="font-mono">{o.eta} WIB</strong></div><div className="progress-track mt-2"><span style={{ width: `${o.progress}%` }}/></div>{(o.parts?.length ?? 0) > 0 && <p className="mt-2 flex flex-wrap gap-1">{o.parts.map(p => <span key={`${p.productId}-${p.productName}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.quantity}× {p.productName}</span>)}</p>}</div><div><div className="mt-4 flex items-center justify-between border-t border-border pt-2 text-xs"><span className="text-muted-foreground">Biaya Servis + Part:</span><strong className="text-sm font-black text-primary">{rupiah(totalBill)}</strong></div><div className="mt-3 flex flex-wrap items-center justify-end gap-2"><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8" onClick={() => sendToKasir(o)}><ShoppingCart data-icon="inline-start" className="size-3.5"/>Bayar di Kasir</Button><Button variant={o.status === 'Selesai' ? 'outline' : 'default'} size="sm" className="h-8" onClick={() => { setEditIdx(i); setEditDraft({ ...o }); }}>{o.status === 'Selesai' ? 'Detail' : 'Perbarui'}</Button><Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-400" onClick={() => setDeleteIdx(i)}><Trash2 data-icon="inline-start"/>Batal</Button></div></div></div>);
+    })}</section>
     <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) setDraft(emptyOrder()); }}><DialogContent><DialogHeader><DialogTitle>Catat Servis Baru</DialogTitle><DialogDescription>Masukkan detail kendaraan dan pekerjaan.</DialogDescription></DialogHeader><FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Nama Pelanggan</FieldLabel><Input value={draft.customer} onChange={e => setDraft(d => ({ ...d, customer: e.target.value }))} placeholder="Nama pelanggan"/></Field><Field><FieldLabel>Nomor Telepon</FieldLabel><Input value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} placeholder="08xx-xxxx-xxxx"/></Field></div>
         <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Plat Nomor</FieldLabel><Input value={draft.plate} onChange={e => setDraft(d => ({ ...d, plate: e.target.value }))} placeholder="B 1234 XYZ"/></Field><Field><FieldLabel>Merk &amp; Tipe</FieldLabel><Input value={draft.brand} onChange={e => setDraft(d => ({ ...d, brand: e.target.value }))} placeholder="Honda Vario 125"/></Field></div>
         <Field><FieldLabel>Jenis Servis</FieldLabel><Input value={draft.job} onChange={e => setDraft(d => ({ ...d, job: e.target.value }))} placeholder="Ganti oli, tune up, dsb."/></Field>
-        <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Status</FieldLabel><Select value={draft.status} onValueChange={v => setDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field><Field><FieldLabel>Estimasi Selesai (jam)</FieldLabel><Input value={draft.eta} onChange={e => setDraft(d => ({ ...d, eta: e.target.value }))} placeholder="17.00"/></Field></div>
+        <Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={draft.complaint} onChange={e => setDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Contoh: Rem bunyi srek, mesin brebet, tarikan gredek"/></Field>
+        <div className="grid gap-4 sm:grid-cols-3"><Field><FieldLabel>Biaya Jasa Servis (Rp)</FieldLabel><Input value={formatThousands(draft.serviceFee)} onChange={e => setDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field><Field><FieldLabel>Status</FieldLabel><Select value={draft.status} onValueChange={v => setDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field><Field><FieldLabel>Estimasi Selesai (jam)</FieldLabel><Input value={draft.eta} onChange={e => setDraft(d => ({ ...d, eta: e.target.value }))} placeholder="17.00"/></Field></div>
         <PartsEditor parts={draft.parts} catalog={catalog} onChange={parts => setDraft(d => ({ ...d, parts }))}/>
     </FieldGroup><DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)}>Batal</Button><Button onClick={saveCreate}>Simpan Servis</Button></DialogFooter></DialogContent></Dialog>
     {editIdx !== null && <Dialog open onOpenChange={o => { if (!o) setEditIdx(null); }}><DialogContent><DialogHeader><DialogTitle>Perbarui Servis</DialogTitle><DialogDescription>{editDraft.id} · {editDraft.job}</DialogDescription></DialogHeader><FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={editDraft.complaint || ''} onChange={e => setEditDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Keluhan..."/></Field><Field><FieldLabel>Biaya Jasa Servis (Rp)</FieldLabel><Input value={formatThousands(editDraft.serviceFee)} onChange={e => setEditDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field></div>
         <Field><FieldLabel>Status</FieldLabel><Select value={editDraft.status} onValueChange={v => setEditDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
         <Field><FieldLabel>Progress ({editDraft.progress}%)</FieldLabel><div className="flex items-center gap-2"><input type="range" min="0" max="100" step="5" value={editDraft.progress} onChange={e => setEditDraft(d => ({ ...d, progress: Number(e.target.value) }))} className="h-2 flex-1 accent-[#dc2626]"/><Input type="number" min="0" max="100" value={editDraft.progress} onChange={e => setEditDraft(d => ({ ...d, progress: Number(e.target.value) }))} className="h-9 w-20 text-center"/></div></Field>
         <Field><FieldLabel>Estimasi Selesai</FieldLabel><Input value={editDraft.eta} onChange={e => setEditDraft(d => ({ ...d, eta: e.target.value }))}/></Field>
