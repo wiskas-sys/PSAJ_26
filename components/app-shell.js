@@ -106,8 +106,12 @@ function AppShellInternal({ children, user }) {
 
     return <div className="relative min-h-screen bg-background lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
     <div className="fx-grid lg:hidden" aria-hidden="true"/>
-    <aside className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-border bg-sidebar transition-transform duration-200 lg:sticky lg:top-0 lg:z-40 lg:bg-sidebar/70 lg:backdrop-blur-2xl ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-      <div className="relative flex h-[76px] items-center justify-between border-b border-border px-4">
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-border bg-sidebar transition-transform duration-200",
+      "lg:sticky lg:top-0 lg:z-40 lg:h-screen lg:max-h-screen lg:self-start lg:bg-sidebar/70 lg:backdrop-blur-2xl",
+      open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+    )}>
+      <div className="relative flex h-[76px] shrink-0 items-center justify-between border-b border-border px-4">
         <Link href="/kasir" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2">
             <span className="brand-mark scale-90"><span>DM</span></span>
             <div className="min-w-0">
@@ -123,7 +127,7 @@ function AppShellInternal({ children, user }) {
         <button type="button" onClick={() => setOpen(false)} className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Tutup navigasi"><X className="size-4"/></button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto"><NavList onClick={() => setOpen(false)}/></div>
-      <div className="p-3 border-t border-border">
+      <div className="p-3 shrink-0 border-t border-border">
         <div className="rounded-xl border border-border/80 bg-muted/40 p-2.5">
             <div className="flex items-center gap-2">
                 <span className={cn("grid size-7 place-items-center rounded-lg text-xs font-bold", isOwner ? "bg-amber-500/20 text-amber-600" : "bg-blue-500/20 text-blue-600")}>
