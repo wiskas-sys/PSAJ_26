@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Lock, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { navLinks, whatsappLink } from "@/components/landing/data";
+import { StaffGateModal } from "@/components/landing/StaffGateModal";
 
 /**
  * Header sticky dengan penanda section aktif saat halaman di-scroll.
  */
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
   const [activeId, setActiveId] = useState("");
   const [scrolled, setScrolled] = useState(false);
 
@@ -153,13 +155,27 @@ export function Header() {
               target="_blank"
               rel="noreferrer noopener"
               onClick={() => setOpen(false)}
-              className="mt-2 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-emerald-500/40 hover:text-emerald-500"
+              className="mt-2 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-emerald-500/40 hover:text-emerald-500 text-center"
             >
               Chat via WhatsApp
             </a>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setGateOpen(true);
+              }}
+              className="mt-1.5 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-border/80 bg-muted/40 px-4 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            >
+              <Lock className="size-3.5 text-primary" />
+              <span>Portal Staf &amp; Manajemen</span>
+            </button>
           </nav>
         </div>
       ) : null}
+
+      <StaffGateModal open={gateOpen} onClose={() => setGateOpen(false)} />
     </header>
   );
 }

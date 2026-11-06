@@ -17,7 +17,7 @@ export default function LoginPage() {
     const update = (key) => (event) => setFields((current) => ({ ...current, [key]: event.target.value }));
 
     return <main className="relative min-h-screen bg-background lg:grid lg:grid-cols-[1.12fr_.88fr]">
-    <section className="relative z-10 isolate flex min-h-[320px] flex-col justify-between overflow-hidden border-b border-border px-6 py-7 sm:min-h-[380px] lg:min-h-screen lg:border-r lg:border-b-0 lg:px-9 xl:px-14">
+    <section className="relative z-10 isolate flex min-h-[240px] flex-col justify-between overflow-hidden border-b border-border px-5 py-6 sm:min-h-[380px] sm:px-6 sm:py-7 lg:min-h-screen lg:border-r lg:border-b-0 lg:px-9 xl:px-14">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <Image src="/images/landing/contact-workshop.jpg" alt="" fill preload sizes="(min-width: 1024px) 56vw, 100vw" className="scale-110 object-cover object-center blur-[4px]" />
         <div className="absolute inset-0 bg-background/[.67]" />

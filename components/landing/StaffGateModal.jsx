@@ -197,7 +197,7 @@ export function StaffGateModal({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in-0 duration-200">
       <div
-        className={`relative w-full max-w-[420px] rounded-[24px] border border-border bg-card p-6 sm:p-8 shadow-2xl transition-all ${
+        className={`relative w-full max-w-[420px] max-h-[92dvh] overflow-y-auto rounded-[24px] border border-border bg-card p-5 sm:p-8 shadow-2xl transition-all ${
           shake ? "animate-shake" : ""
         }`}
       >

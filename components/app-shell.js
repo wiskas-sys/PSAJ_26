@@ -110,9 +110,9 @@ function AppShellInternal({ children, user }) {
     return <div className="relative min-h-screen bg-background lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
     <div className="fx-grid lg:hidden" aria-hidden="true"/>
     <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-border bg-sidebar transition-transform duration-200",
+      "fixed inset-y-0 left-0 z-50 flex w-[270px] max-w-[85vw] flex-col border-r border-border bg-sidebar transition-transform duration-200",
       "lg:sticky lg:top-0 lg:z-40 lg:h-screen lg:max-h-screen lg:self-start lg:bg-sidebar/70 lg:backdrop-blur-2xl",
-      open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      open ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"
     )}>
       <div className="relative flex h-[76px] shrink-0 items-center justify-between border-b border-border px-4">
         <Link href="/dashboard" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-2">
@@ -146,15 +146,15 @@ function AppShellInternal({ children, user }) {
     </aside>
     {open && <button type="button" aria-label="Tutup navigasi" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"/>}
     <div className="relative z-10 min-w-0 lg:col-start-2">
-      <header className="sticky top-0 z-30 flex min-h-[76px] items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur-xl md:px-5">
-        <button type="button" onClick={() => setOpen(true)} className="grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground lg:hidden" aria-label="Buka navigasi"><Menu className="size-4"/></button>
+      <header className="sticky top-0 z-30 flex min-h-[64px] sm:min-h-[76px] items-center gap-2.5 sm:gap-3 border-b border-border bg-background/90 px-3 sm:px-5 backdrop-blur-xl">
+        <button type="button" onClick={() => setOpen(true)} className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground lg:hidden cursor-pointer" aria-label="Buka navigasi"><Menu className="size-4"/></button>
         <LiveClock />
-        <Link href="/notifikasi" className="relative grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground" aria-label="Notifikasi"><Bell className="size-4"/>{unread > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-[17px] place-items-center rounded-full bg-primary text-[9px] font-bold text-white">{unread}</span>}</Link>
-        <ThemeToggle className="shrink-0"/>
+        <Link href="/notifikasi" className="relative grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground" aria-label="Notifikasi"><Bell className="size-4"/>{unread > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-[17px] place-items-center rounded-full bg-primary text-[9px] font-bold text-white">{unread}</span>}</Link>
+        <ThemeToggle className="size-9 sm:size-10 shrink-0"/>
         <div className="ml-auto"/>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2.5 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted">
-            <span className={cn("grid size-9 place-items-center rounded-full text-[11px] font-extrabold text-white shadow-sm", isOwner ? "bg-amber-600" : "bg-primary")}>{initials}</span>
+          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted cursor-pointer">
+            <span className={cn("grid size-8 sm:size-9 place-items-center rounded-full text-[11px] font-extrabold text-white shadow-sm", isOwner ? "bg-amber-600" : "bg-primary")}>{initials}</span>
             <span className="hidden max-w-[170px] xl:block">
                 <strong className="block truncate text-[13px]">{name}</strong>
                 <small className="block truncate text-[10px] text-muted-foreground font-medium">{roleLabel}</small>
@@ -179,8 +179,8 @@ function AppShellInternal({ children, user }) {
         </DropdownMenu>
       </header>
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogHeader><DialogTitle>Bantuan Shortcut</DialogTitle><DialogDescription>Percepat operasional harian dengan pintasan ini.</DialogDescription></DialogHeader><div className="grid gap-2">{[['/kasir', 'Buka halaman Kasir'], ['/stok', 'Buka Cek Stok'], ['/transaksi', 'Buka riwayat Transaksi'], ['/servis', 'Buka papan Servis']].map(([k, v]) => <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span className="text-muted-foreground">{v}</span><kbd>{k}</kbd></div>)}</div></DialogContent></Dialog>
-      <nav className="sticky top-[76px] z-20 flex gap-1.5 overflow-x-auto border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl lg:hidden" aria-label="Navigasi cepat">{mobileNavItems.map(([l, href]) => <Link key={href} href={href} className={cn('flex h-9 shrink-0 items-center rounded-lg px-3 text-xs font-semibold', pathname === href ? 'bg-primary text-white' : 'bg-muted text-muted-foreground hover:text-foreground')}>{l}</Link>)}</nav>
-      <main className="relative p-4 md:p-6 xl:p-8"><div className="mx-auto max-w-[1400px]">{children}</div></main>
+      <nav className="sticky top-[64px] sm:top-[76px] z-20 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border bg-background/95 px-3 py-2 backdrop-blur-xl lg:hidden" aria-label="Navigasi cepat">{mobileNavItems.map(([l, href]) => <Link key={href} href={href} className={cn('flex h-8 sm:h-9 shrink-0 items-center rounded-lg px-3 text-xs font-semibold transition-colors', pathname === href ? 'bg-primary text-white shadow-xs' : 'bg-muted text-muted-foreground hover:text-foreground')}>{l}</Link>)}</nav>
+      <main className="relative p-3.5 sm:p-5 md:p-6 xl:p-8"><div className="mx-auto max-w-[1400px]">{children}</div></main>
     </div>
   </div>;
 }

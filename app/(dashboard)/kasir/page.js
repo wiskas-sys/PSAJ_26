@@ -409,13 +409,13 @@ export default function PosPage() {
       <section className="min-w-0">
         <div className="mb-4 grid gap-3">
           <div className="input-with-icon"><Search className="size-4"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari produk, kode SKU..." className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/></div>
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5">{categories.map(c => <button key={c} type="button" onClick={() => setCategory(c)} className={cnTab(category === c)}>{c}</button>)}</div>
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">{categories.map(c => <button key={c} type="button" onClick={() => setCategory(c)} className={cnTab(category === c)}>{c}</button>)}</div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{shown.map(p => <article key={p.id} className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/40"><div className="flex items-center justify-between gap-2"><span className="grid size-9 place-items-center rounded-[10px] bg-muted font-mono text-[11px] font-extrabold text-primary">{initials(p.name)}</span><StockChip stock={p.stock} minimum={p.minimumStock}/></div><p className="mt-3 font-mono text-[10px] text-muted-foreground">{p.code}</p><h2 className="mt-0.5 text-[15px] leading-snug font-semibold">{p.name}</h2><p className="mt-1 text-[11px] text-muted-foreground">{p.category} · {p.unit}</p><div className="mt-auto flex items-center justify-between gap-2 pt-4"><strong className="text-[15px]">{rupiah(p.sellingPrice)}</strong><Button size="sm" onClick={() => add(p)} disabled={p.stock === 0}><Plus data-icon="inline-start"/>Tambah</Button></div></article>)}
         {!shown.length && <div className="grid h-48 place-items-center rounded-2xl border border-dashed border-border text-sm text-muted-foreground">Tidak ada produk yang cocok dengan pencarian.</div>}
         </div>
       </section>
-      <Card className="rounded-[17px] shadow-xl xl:sticky xl:top-[100px]"><CardContent className="p-4">
+      <Card id="pos-cart-panel" className="rounded-[17px] shadow-xl xl:sticky xl:top-[100px]"><CardContent className="p-4">
         <div className="flex items-center justify-between border-b border-border pb-3"><h2 className="text-lg font-bold">Keranjang</h2><span className="rounded-full bg-muted px-2.5 py-1 font-mono text-[10px] text-muted-foreground">{count} ITEM</span></div>
         <div className="max-h-[300px] min-h-[120px] overflow-y-auto border-b border-border py-2">{cart.length === 0 ? <div className="grid h-[120px] place-items-center text-center"><div><ShoppingCart className="mx-auto size-9 text-muted-foreground/30"/><p className="mt-2 text-sm font-semibold">Keranjang masih kosong</p><p className="text-[11px] text-muted-foreground">Pilih produk untuk memulai transaksi.</p></div></div> : cart.map(i => <div key={i.product.id} className="border-b border-border py-2.5 last:border-0"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><h3 className="truncate text-[13px] font-semibold">{i.product.name}</h3><p className="font-mono text-[10px] text-muted-foreground">{i.product.sellingPrice.toLocaleString('id-ID')}</p></div><div className="text-right"><strong className="block text-[13px]">{rupiah(i.product.sellingPrice * i.qty)}</strong><button type="button" className="mt-0.5 text-red-500 hover:text-red-400" onClick={() => setCart(c => c.filter(x => x.product.id !== i.product.id))} aria-label="Hapus"><Trash2 className="size-3.5"/></button></div></div><div className="mt-1.5 flex items-center gap-2"><button type="button" className="grid size-7 place-items-center rounded-lg border border-border bg-muted" onClick={() => qty(i.product.id, -1)} aria-label="Kurangi"><Minus className="size-3.5"/></button><span className="w-7 text-center text-sm font-bold">{i.qty}</span><button type="button" className="grid size-7 place-items-center rounded-lg border border-border bg-muted" onClick={() => qty(i.product.id, 1)} aria-label="Tambah"><Plus className="size-3.5"/></button></div></div>)}</div>
         <div className="flex flex-col gap-3 pt-3">
@@ -698,6 +698,31 @@ export default function PosPage() {
                 toast.success(`Pembayaran QRIS untuk servis ${pendingService.id} berhasil diverifikasi!`);
             }}
         />
+    )}
+
+    {/* Floating Mobile Cart Bar (xl:hidden) saat keranjang terisi */}
+    {cart.length > 0 && (
+      <div className="fixed bottom-4 inset-x-3 z-40 xl:hidden animate-in slide-in-from-bottom-3 duration-200">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-card/95 p-3 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-white shadow-xs">
+              <ShoppingCart className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-muted-foreground">{count} Item di Keranjang</p>
+              <p className="truncate text-base font-extrabold text-foreground">{rupiah(total)}</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              document.getElementById('pos-cart-panel')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="h-10 px-4 text-xs font-bold shadow-sm shrink-0 cursor-pointer"
+          >
+            Lihat Keranjang &rarr;
+          </Button>
+        </div>
+      </div>
     )}
   </div>;
 }

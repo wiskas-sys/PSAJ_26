@@ -29,7 +29,7 @@ export function ReceiptSheet({ open, onClose, orderId, date, items = [], subtota
             (method === 'Tunai' && paid > 0 ? `Bayar: ${rupiah(paid)}\nKembalian: ${rupiah(change || 0)}\n` : '') +
             `\n*STATUS: LUNAS* ✅\n` +
             `Terima kasih telah mempercayakan kendaraan Anda di DIAN MOTOR!\n` +
-            `Jl. Raya Dian Motor · Solusi Servis & Suku Cadang Terpercaya`;
+            `Jl. Ps. Wage No. 19, Krajan, Jatisawit, Bumiayu · Solusi Servis & Suku Cadang Terpercaya`;
 
         const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
