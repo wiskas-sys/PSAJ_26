@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowDownToLine, ArrowUpFromLine, FileSpreadsheet, MoreHorizontal, PackagePlus, PackageX, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -40,6 +41,7 @@ function downloadStockCsv(list) {
 }
 
 export default function StockPage() {
+    const router = useRouter();
     const { isOwner } = useUser();
     const [data, setData] = useState([]);
     const [logs, setLogs] = useState([]);
@@ -76,18 +78,31 @@ export default function StockPage() {
         }
     }
     return <div className="flex flex-col gap-5">
-        <PageHeader title="Stok & Inventori" description="Masukkan data barang, catat mutasi, dan pantau ketersediaan secara akurat.">
-            {isOwner && <Button onClick={() => setProductForm({ open: true, product: null })}><Plus data-icon="inline-start"/>Tambah Barang</Button>}
-            <Button variant="outline" onClick={() => openMovement(null, 'IN')}><ArrowDownToLine data-icon="inline-start"/>Barang Masuk</Button>
-            <Button variant="outline" onClick={() => openMovement(null, 'OUT')}><ArrowUpFromLine data-icon="inline-start"/>Barang Keluar</Button>
-            <DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground data-open:bg-muted"><MoreHorizontal/><span className="sr-only">Alat stok</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-52 p-1.5">
-                <DropdownMenuItem className="h-9" onClick={() => setBulkOpen(true)}><FileSpreadsheet className="size-4 text-muted-foreground"/>Impor Massal Katalog</DropdownMenuItem>
-                <DropdownMenuItem className="h-9" onClick={() => setBulkMovement({ open: true, type: 'IN' })}><ArrowDownToLine className="size-4 text-emerald-500"/>Impor Excel Barang Masuk</DropdownMenuItem>
-                <DropdownMenuItem className="h-9" onClick={() => setBulkMovement({ open: true, type: 'OUT' })}><ArrowUpFromLine className="size-4 text-red-500"/>Impor Excel Barang Keluar</DropdownMenuItem>
-                <DropdownMenuSeparator/>
-                <DropdownMenuItem className="h-9" onClick={() => downloadStockCsv(shown)} disabled={!shown.length}><FileSpreadsheet className="size-4 text-muted-foreground"/>Unduh CSV Stok</DropdownMenuItem>
-                <DropdownMenuItem className="h-9" onClick={() => { refresh(); toast.success('Data stok disinkronkan.'); }}><RefreshCw className="size-4 text-muted-foreground"/>Sinkronkan Stok</DropdownMenuItem>
-            </DropdownMenuContent></DropdownMenu>
+        <PageHeader 
+            title="Stok & Inventori" 
+            description={isOwner ? "Pantau ketersediaan suku cadang dan riwayat mutasi barang bengkel secara real-time." : "Masukkan data barang, catat mutasi, dan pantau ketersediaan secara akurat."}
+        >
+            {isOwner ? (
+                <>
+                    <Button variant="outline" onClick={() => router.push('/barang-masuk')}><ArrowDownToLine data-icon="inline-start"/>Riwayat Masuk</Button>
+                    <Button variant="outline" onClick={() => router.push('/barang-keluar')}><ArrowUpFromLine data-icon="inline-start"/>Riwayat Keluar</Button>
+                    <Button variant="outline" onClick={() => downloadStockCsv(shown)} disabled={!shown.length}><FileSpreadsheet data-icon="inline-start"/>Unduh CSV</Button>
+                    <Button variant="outline" size="icon" onClick={() => { refresh(); toast.success('Data stok disinkronkan.'); }} title="Sinkronkan Stok"><RefreshCw className="size-4"/></Button>
+                </>
+            ) : (
+                <>
+                    <Button variant="outline" onClick={() => openMovement(null, 'IN')}><ArrowDownToLine data-icon="inline-start"/>Barang Masuk</Button>
+                    <Button variant="outline" onClick={() => openMovement(null, 'OUT')}><ArrowUpFromLine data-icon="inline-start"/>Barang Keluar</Button>
+                    <DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground data-open:bg-muted"><MoreHorizontal/><span className="sr-only">Alat stok</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-52 p-1.5">
+                        <DropdownMenuItem className="h-9" onClick={() => setBulkOpen(true)}><FileSpreadsheet className="size-4 text-muted-foreground"/>Impor Massal Katalog</DropdownMenuItem>
+                        <DropdownMenuItem className="h-9" onClick={() => setBulkMovement({ open: true, type: 'IN' })}><ArrowDownToLine className="size-4 text-emerald-500"/>Impor Excel Barang Masuk</DropdownMenuItem>
+                        <DropdownMenuItem className="h-9" onClick={() => setBulkMovement({ open: true, type: 'OUT' })}><ArrowUpFromLine className="size-4 text-red-500"/>Impor Excel Barang Keluar</DropdownMenuItem>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem className="h-9" onClick={() => downloadStockCsv(shown)} disabled={!shown.length}><FileSpreadsheet className="size-4 text-muted-foreground"/>Unduh CSV Stok</DropdownMenuItem>
+                        <DropdownMenuItem className="h-9" onClick={() => { refresh(); toast.success('Data stok disinkronkan.'); }}><RefreshCw className="size-4 text-muted-foreground"/>Sinkronkan Stok</DropdownMenuItem>
+                    </DropdownMenuContent></DropdownMenu>
+                </>
+            )}
         </PageHeader>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -104,7 +119,7 @@ export default function StockPage() {
                     <div className="input-with-icon min-w-0 flex-1"><Search className="size-4"/><Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari nama barang atau kode barang..." className="h-10"/></div>
                     <div className="flex gap-1.5 overflow-x-auto">{filters.map(v => <button key={v} type="button" onClick={() => setFilter(v)} className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${filter === v ? 'bg-primary text-white' : 'border border-border bg-card text-muted-foreground hover:text-foreground'}`}>{v}{v !== 'Semua' && <span className="rounded-full bg-black/10 px-1.5 font-mono text-[10px] dark:bg-white/10">{counts[v]}</span>}</button>)}</div>
                 </div>
-                <div className="hidden overflow-x-auto md:block"><table className="w-full"><thead><tr className="border-b border-border">{[['Kode Barang', 'left'], ['Nama Barang', 'left'], ['Kategori', 'left'], ['Stok', 'left'], ['Minimum', 'left'], ['Harga Jual', 'right'], ['Status', 'left'], ['Aksi', 'right']].map(([h, align]) => <th key={h} className={`px-3.5 py-2.5 font-medium uppercase tracking-wide ${align === 'right' ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr></thead>
+                <div className="hidden overflow-x-auto md:block"><table className="w-full"><thead><tr className="border-b border-border">{[['Kode Barang', 'left'], ['Nama Barang', 'left'], ['Kategori', 'left'], ['Stok', 'left'], ['Minimum', 'left'], ['Harga Jual', 'right'], ['Status', 'left'], ...(!isOwner ? [['Aksi', 'right']] : [])].map(([h, align]) => <th key={h} className={`px-3.5 py-2.5 font-medium uppercase tracking-wide ${align === 'right' ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr></thead>
                     <tbody>{shown.map(p => <tr key={p.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
                         <td className="px-3.5 py-3 font-mono text-xs">{p.code}</td>
                         <td className="px-3.5 py-3 text-[13px] font-semibold">{p.name}</td>
@@ -113,19 +128,19 @@ export default function StockPage() {
                         <td className="px-3.5 py-3 text-[13px]">{p.minimumStock}</td>
                         <td className="px-3.5 py-3 text-right text-[13px] font-semibold">{rupiah(p.sellingPrice)}</td>
                         <td className="px-3.5 py-3"><StockBadge stock={p.stock} minimum={p.minimumStock}/></td>
-                        <td className="px-3.5 py-3 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi {p.code}</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48 p-1.5">
+                        {!isOwner && <td className="px-3.5 py-3 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi {p.code}</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48 p-1.5">
                             <DropdownMenuItem className="h-9" onClick={() => openMovement(p.id, 'IN')}><PackagePlus className="size-4 text-emerald-500"/>Tambah Stok</DropdownMenuItem>
                             <DropdownMenuItem className="h-9" onClick={() => openMovement(p.id, 'OUT')}><PackageX className="size-4 text-red-500"/>Kurangi Stok</DropdownMenuItem>
                             <DropdownMenuItem className="h-9" onClick={() => setProductForm({ open: true, product: p })}><Pencil className="size-4 text-muted-foreground"/>Ubah Barang</DropdownMenuItem>
                             <DropdownMenuSeparator/>
                             <DropdownMenuItem variant="destructive" className="h-9 text-red-500" onClick={() => setDeleteTarget(p)}><Trash2 className="size-4 text-red-500"/>Hapus Barang</DropdownMenuItem>
-                        </DropdownMenuContent></DropdownMenu></td>
+                        </DropdownMenuContent></DropdownMenu></td>}
                     </tr>)}</tbody></table></div>
                 <div className="grid gap-3 p-3 md:hidden">{shown.map(p => <article key={p.id} className="rounded-xl border border-border p-4">
                     <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="font-mono text-[10px] text-muted-foreground">{p.code}</p><h2 className="mt-1 text-sm font-semibold">{p.name}</h2></div><span className="part-cell"><span>{p.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</span></span></div>
                     <div className="mt-3 flex items-center justify-between"><strong>{p.stock} <small className="font-normal text-muted-foreground">{p.unit}</small></strong><StockBadge stock={p.stock} minimum={p.minimumStock}/></div>
                     <p className="mt-1 text-xs text-muted-foreground">{p.category} · {rupiah(p.sellingPrice)}</p>
-                    <div className="mt-3 grid grid-cols-3 gap-2"><Button variant="outline" size="sm" onClick={() => openMovement(p.id, 'IN')}><Plus data-icon="inline-start"/>Tambah</Button><Button variant="outline" size="sm" onClick={() => openMovement(p.id, 'OUT')}><PackageX data-icon="inline-start"/>Kurangi</Button><Button variant="outline" size="sm" onClick={() => setProductForm({ open: true, product: p })}><Pencil data-icon="inline-start"/>Ubah</Button></div>
+                    {!isOwner && <div className="mt-3 grid grid-cols-3 gap-2"><Button variant="outline" size="sm" onClick={() => openMovement(p.id, 'IN')}><Plus data-icon="inline-start"/>Tambah</Button><Button variant="outline" size="sm" onClick={() => openMovement(p.id, 'OUT')}><PackageX data-icon="inline-start"/>Kurangi</Button><Button variant="outline" size="sm" onClick={() => setProductForm({ open: true, product: p })}><Pencil data-icon="inline-start"/>Ubah</Button></div>}
                 </article>)}</div>
                 {!shown.length && <p className="py-16 text-center text-muted-foreground">{data.length ? 'Tidak ada data yang cocok dengan pencarian.' : 'Belum ada barang. Klik Tambah Barang untuk mulai.'}</p>}
             </div>}

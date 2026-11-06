@@ -13,8 +13,8 @@ import { WhyUs } from "@/components/landing/WhyUs";
 
 /**
  * Company profile publik Dian Motor untuk peran Pengunjung.
- * Lengkap dengan AI Problem Solving & Diagnosa Kerusakan Suku Cadang (ID/Jawa/Ngapak).
- * Akses internal staf/kasir/owner dilindungi melalui verifikasi 2 pola di footer.
+ * Fitur Konsultasi & Diagnosa Kerusakan Suku Cadang (Bahasa Indonesia, Jawa, Ngapak).
+ * Akses internal staf/kasir/owner dilindungi melalui verifikasi di footer.
  */
 export default function HomePage() {
   return (

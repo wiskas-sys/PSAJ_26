@@ -38,7 +38,7 @@ export function Hero() {
               asChild
               className="h-11 px-6 text-sm font-semibold shadow-sm cursor-pointer"
             >
-              <Link href="/konsultasi-ai">Tanya AI Diagnosa Kerusakan</Link>
+              <Link href="/konsultasi-ai">Konsultasi Kerusakan Motor</Link>
             </Button>
 
             <Button

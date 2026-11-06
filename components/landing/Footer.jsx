@@ -28,7 +28,7 @@ export function Footer() {
               </p>
 
               <p className="mt-5 text-xs text-muted-foreground">
-                AI Diagnosa aktif 24 jam.
+                Konsultasi online aktif 24 jam.
               </p>
             </div>
 

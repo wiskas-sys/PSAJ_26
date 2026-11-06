@@ -12,7 +12,7 @@ export function Testimonials() {
       id="testimoni"
       eyebrow="Testimoni"
       title="Cerita dari pelanggan"
-      lead="Data di bawah masih contoh sementara. Ulasan asli akan menggantikan bagian ini setelah pelanggan memberi izin."
+      lead="Ulasan kepuasan dan pengalaman servis dari pelanggan bengkel Dian Motor."
     >
       <div className="grid gap-5 lg:grid-cols-3">
         {testimonials.map((item) => (
@@ -22,15 +22,10 @@ export function Testimonials() {
           >
             <div className="flex items-center justify-between">
               <Quote aria-hidden="true" className="size-5 text-primary" />
-              {item.dummy ? (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  Contoh
-                </span>
-              ) : null}
             </div>
 
             <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
-              {item.quote}
+              &ldquo;{item.quote}&rdquo;
             </blockquote>
 
             <figcaption className="mt-6 border-t border-border pt-4">

@@ -24,7 +24,7 @@ export function Services() {
       id="layanan"
       eyebrow="LAYANAN UNGGULAN"
       title="Servis Berkualitas dengan Estimasi Biaya Transparan"
-      lead="Biaya di bawah adalah estimasi standar. Harga final selalu dikonfirmasi bersama Anda setelah pengecekan mekanik atau diagnosa AI."
+      lead="Biaya di bawah adalah estimasi standar. Harga final selalu dikonfirmasi bersama Anda setelah pengecekan fisik mekanik di bengkel."
     >
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {services.map((service) => {
@@ -78,12 +78,12 @@ export function Services() {
             Punya keluhan mesin, bunyi aneh, atau tarikan berat?
           </h4>
           <p className="text-xs text-muted-foreground mt-1">
-            Gunakan AI Diagnosa Dian Motor untuk mendeteksi sumber kerusakan dan cek suku cadangnya sebelum datang ke bengkel.
+            Gunakan fitur konsultasi online Dian Motor untuk mendeteksi sumber keluhan dan cek suku cadangnya sebelum datang ke bengkel.
           </p>
         </div>
 
         <Button asChild size="sm" className="shrink-0 h-10 px-5 cursor-pointer">
-          <Link href="/konsultasi-ai">Coba AI Diagnosa</Link>
+          <Link href="/konsultasi-ai">Konsultasi Kerusakan</Link>
         </Button>
       </div>
     </Section>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Wrench,
-  Sparkles,
+  HelpCircle,
   Send,
   Loader2,
   RefreshCw,
@@ -129,7 +129,7 @@ function MessageBubble({ msg, index, totalMessages, lastUserQuery }) {
           <div className="mt-3.5 pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
             <a
               href={whatsappLink(
-                `Halo Mas Dian Bengkel Dian Motor, saya ingin konsultasi & booking servis setelah tanya AI: "${lastUserQuery || ""}"`
+                `Halo Mas Dian Bengkel Dian Motor, saya ingin konsultasi & booking servis setelah cek diagnosa: "${lastUserQuery || ""}"`
               )}
               target="_blank"
               rel="noopener noreferrer"
@@ -280,7 +280,7 @@ Ketik keluhanmu di bawah atau klik salah satu topik cepat!`,
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-500">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            AI Mekanik Aktif 24 Jam
+            Asisten Mekanik Aktif 24 Jam
           </span>
         </div>
       </div>
@@ -298,7 +298,7 @@ Ketik keluhanmu di bawah atau klik salah satu topik cepat!`,
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground leading-none">
-                Mas Dian — AI Mekanik Dian Motor
+                Mas Dian — Asisten Mekanik Dian Motor
               </h2>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 Paham Bahasa Jawa, Ngapak, &amp; Indonesia • Cek Stok Real-Time
@@ -348,7 +348,7 @@ Ketik keluhanmu di bawah atau klik salah satu topik cepat!`,
         <div className="relative border-t border-border/60 bg-muted/20 px-3 py-2 sm:px-6">
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-semibold text-muted-foreground shrink-0 flex items-center gap-1 pr-1 select-none">
-              <Sparkles className="size-3 text-primary" />
+              <HelpCircle className="size-3 text-primary" />
               Contoh:
             </span>
 

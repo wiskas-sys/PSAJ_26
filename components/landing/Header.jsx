@@ -99,7 +99,7 @@ export function Header() {
               asChild
               className="hidden h-9 rounded-full px-4 text-xs font-semibold cursor-pointer sm:inline-flex"
             >
-              <Link href="/konsultasi-ai">AI Diagnosa</Link>
+              <Link href="/konsultasi-ai">Konsultasi Servis</Link>
             </Button>
 
             <button
@@ -127,7 +127,7 @@ export function Header() {
           >
             <Button asChild className="mb-2 h-11 w-full rounded-full cursor-pointer">
               <Link href="/konsultasi-ai" onClick={() => setOpen(false)}>
-                AI Diagnosa Motor
+                Konsultasi &amp; Diagnosa
               </Link>
             </Button>
 

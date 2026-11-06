@@ -154,7 +154,7 @@ export function AiDiagnosticSection() {
       id="ai-diagnosa"
       eyebrow="Konsultasi pelanggan"
       title="Diagnosa motor dan cek stok suku cadang"
-      lead="Ceritakan keluhan motor Anda dengan bahasa sehari-hari, Boso Jowo, atau dialek Ngapak. AI Mekanik akan menyebut kemungkinan penyebabnya dan mengecek ketersediaan suku cadang di Dian Motor."
+      lead="Ceritakan keluhan motor Anda dengan bahasa sehari-hari, Boso Jowo, atau dialek Ngapak. Sistem asisten mekanik akan membantu menganalisa kemungkinan penyebabnya dan mengecek ketersediaan suku cadang di Dian Motor."
     >
       <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
         {/* Kolom Kiri: Input Keluhan & Chip Gejala Populer */}
@@ -303,14 +303,14 @@ export function AiDiagnosticSection() {
                 <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                   <Button asChild className="flex-1 h-10 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
                     <Link href={`/konsultasi-ai?q=${encodeURIComponent(result.originalQuery)}`}>
-                      Lanjut ngobrol di halaman AI
+                      Lanjut konsultasi lebih detail
                     </Link>
                   </Button>
 
                   <Button asChild variant="outline" className="h-10 gap-2 rounded-xl text-xs font-semibold cursor-pointer border-border hover:bg-muted">
                     <a
                       href={whatsappLink(
-                        `Halo Bengkel Dian Motor, saya ingin konsultasi servis setelah cek di AI Diagnosa: "${result.originalQuery}"`
+                        `Halo Bengkel Dian Motor, saya ingin konsultasi servis setelah cek di website Dian Motor: "${result.originalQuery}"`
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -353,12 +353,12 @@ export function AiDiagnosticSection() {
 
             {/* Footer Kotak Hasil */}
             <div className="mt-5 pt-3.5 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Sistem AI terhubung langsung ke inventori resmi Dian Motor</span>
+              <span>Sistem terhubung langsung ke inventori resmi Dian Motor</span>
               <Link
                 href="/konsultasi-ai"
                 className="font-medium text-primary hover:underline"
               >
-                Buka halaman AI
+                Buka ruang konsultasi
               </Link>
             </div>
           </div>

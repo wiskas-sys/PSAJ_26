@@ -7,6 +7,7 @@ import { formatThousands, parseThousands } from '@/lib/money-format';
 import { applyPartDelta, totalParts } from '@/lib/service-parts';
 import { listStockProducts } from '@/lib/supabase/stock-products';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/components/user-context';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -62,6 +63,7 @@ function PartsEditor({ parts, catalog, onChange }) {
 
 export default function Page() {
     const router = useRouter();
+    const { isOwner } = useUser();
     const [orders, setOrders] = useState(() => SEED_SERVICES.map(o => ({ ...o })));
     const [catalog, setCatalog] = useState([]);
     const [createOpen, setCreateOpen] = useState(false);
@@ -163,19 +165,43 @@ export default function Page() {
         router.push(`/kasir?serviceId=${service.id}`);
     }
     const tag = (s) => s === 'Selesai' ? 'stock-chip' : s === 'Dikerjakan' ? 'stock-chip low' : 'stock-chip';
-    return <div className="flex flex-col gap-5"><PageHeader title="Servis" description="Pantau pekerjaan bengkel dari masuk hingga diambil."> <Button onClick={() => setCreateOpen(true)}><Plus data-icon="inline-start"/>Catat Servis</Button></PageHeader>
-    <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-foreground flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-            <span className="size-2 rounded-full bg-blue-400 animate-pulse shrink-0"/>
-            <p><strong>Alur Servis Dian Motor:</strong> Tukang servis menentukan rincian pekerjaan dan total biaya. Setelah selesai, klik <strong>Kirim Tagihan ke Kasir</strong> agar kasir langsung memproses pembayaran & menerbitkan struk WhatsApp.</p>
+    return <div className="flex flex-col gap-5">
+        <PageHeader 
+            title="Servis" 
+            description={isOwner ? "Monitoring status antrian dan progres pengerjaan servis bengkel secara real-time." : "Pantau pekerjaan bengkel dari masuk hingga diambil."}
+        >
+            {!isOwner && <Button onClick={() => setCreateOpen(true)}><Plus data-icon="inline-start"/>Catat Servis</Button>}
+        </PageHeader>
+        <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-foreground flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+                <span className="size-2 rounded-full bg-blue-400 animate-pulse shrink-0"/>
+                <p>
+                    {isOwner ? (
+                        <><strong>Monitoring Servis Dian Motor:</strong> Memantau antrian perbaikan bengkel, keluhan pelanggan, progres pengerjaan mekanik, dan suku cadang yang digunakan secara real-time.</>
+                    ) : (
+                        <><strong>Alur Servis Dian Motor:</strong> Tukang servis menentukan rincian pekerjaan dan total biaya. Setelah selesai, klik <strong>Kirim Tagihan ke Kasir</strong> agar kasir langsung memproses pembayaran &amp; menerbitkan struk WhatsApp.</>
+                    )}
+                </p>
+            </div>
         </div>
-    </div>
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(([label, value, note, Icon]) => <div key={label} className="metric-card"><div className="flex items-start justify-between"><p className="text-sm text-muted-foreground">{label}</p><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span></div><strong className="mt-1 block text-2xl font-bold">{value}</strong><p className="mt-1 text-xs text-muted-foreground">{note}</p></div>)}</section>
     <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{orders.map((o, i) => {
         const partsTotal = (o.parts || []).reduce((sum, p) => sum + (p.sellingPrice || 0) * (p.quantity || 1), 0);
         const fee = Number(o.serviceFee || 0);
         const totalBill = fee + partsTotal;
-        return (<div key={o.id} className="surface p-4 flex flex-col justify-between"><div><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] text-muted-foreground">{o.id}</p><h2 className="mt-1 text-[15px] font-bold">{o.job}</h2></div><span className={tag(o.status)}>{o.status.toUpperCase()}</span></div>{o.complaint && <p className="mt-2 text-xs italic text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">Keluhan: &ldquo;{o.complaint}&rdquo;</p>}<div className="mt-3 rounded-xl bg-muted p-3"><div className="flex justify-between"><span className="font-mono text-[11px] font-semibold">{o.plate}</span><small className="text-muted-foreground">{o.brand}</small></div><p className="mt-1 text-sm font-semibold">{o.customer}</p><small className="font-mono text-[10px] text-muted-foreground">{o.phone}</small></div><div className="mt-3 flex justify-between text-xs"><span className="text-muted-foreground">Estimasi selesai</span><strong className="font-mono">{o.eta} WIB</strong></div><div className="progress-track mt-2"><span style={{ width: `${o.progress}%` }}/></div>{(o.parts?.length ?? 0) > 0 && <p className="mt-2 flex flex-wrap gap-1">{o.parts.map(p => <span key={`${p.productId}-${p.productName}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.quantity}× {p.productName}</span>)}</p>}</div><div><div className="mt-4 flex items-center justify-between border-t border-border pt-2 text-xs"><span className="text-muted-foreground">Biaya Servis + Part:</span><strong className="text-sm font-black text-primary">{rupiah(totalBill)}</strong></div><div className="mt-3 flex flex-wrap items-center justify-end gap-2"><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8" onClick={() => sendToKasir(o)}><ShoppingCart data-icon="inline-start" className="size-3.5 mr-1"/>Kirim Tagihan ke Kasir</Button><Button variant={o.status === 'Selesai' ? 'outline' : 'default'} size="sm" className="h-8" onClick={() => { setEditIdx(i); setEditDraft({ ...o }); }}>{o.status === 'Selesai' ? 'Detail' : 'Perbarui'}</Button><Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-400" onClick={() => setDeleteIdx(i)}><Trash2 data-icon="inline-start"/>Batal</Button></div></div></div>);
+        return (<div key={o.id} className="surface p-4 flex flex-col justify-between"><div><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] text-muted-foreground">{o.id}</p><h2 className="mt-1 text-[15px] font-bold">{o.job}</h2></div><span className={tag(o.status)}>{o.status.toUpperCase()}</span></div>{o.complaint && <p className="mt-2 text-xs italic text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">Keluhan: &ldquo;{o.complaint}&rdquo;</p>}<div className="mt-3 rounded-xl bg-muted p-3"><div className="flex justify-between"><span className="font-mono text-[11px] font-semibold">{o.plate}</span><small className="text-muted-foreground">{o.brand}</small></div><p className="mt-1 text-sm font-semibold">{o.customer}</p><small className="font-mono text-[10px] text-muted-foreground">{o.phone}</small></div><div className="mt-3 flex justify-between text-xs"><span className="text-muted-foreground">Estimasi selesai</span><strong className="font-mono">{o.eta} WIB</strong></div><div className="progress-track mt-2"><span style={{ width: `${o.progress}%` }}/></div>{(o.parts?.length ?? 0) > 0 && <p className="mt-2 flex flex-wrap gap-1">{o.parts.map(p => <span key={`${p.productId}-${p.productName}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.quantity}× {p.productName}</span>)}</p>}</div><div><div className="mt-4 flex items-center justify-between border-t border-border pt-2 text-xs"><span className="text-muted-foreground">Biaya Servis + Part:</span><strong className="text-sm font-black text-primary">{rupiah(totalBill)}</strong></div>{isOwner ? (
+            <div className="mt-3 flex items-center justify-end gap-2">
+                <Button variant="outline" size="sm" className="h-8" onClick={() => setDetailIdx(i)}>
+                    Lihat Detail Servis
+                </Button>
+            </div>
+        ) : (
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8" onClick={() => sendToKasir(o)}><ShoppingCart data-icon="inline-start" className="size-3.5 mr-1"/>Kirim Tagihan ke Kasir</Button>
+                <Button variant={o.status === 'Selesai' ? 'outline' : 'default'} size="sm" className="h-8" onClick={() => { setEditIdx(i); setEditDraft({ ...o }); }}>{o.status === 'Selesai' ? 'Detail' : 'Perbarui'}</Button>
+                <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-400" onClick={() => setDeleteIdx(i)}><Trash2 data-icon="inline-start"/>Batal</Button>
+            </div>
+        )}</div></div>);
     })}</section>
     <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) setDraft(emptyOrder()); }}><DialogContent><DialogHeader><DialogTitle>Catat Servis Baru</DialogTitle><DialogDescription>Masukkan detail kendaraan dan pekerjaan.</DialogDescription></DialogHeader><FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Nama Pelanggan</FieldLabel><Input value={draft.customer} onChange={e => setDraft(d => ({ ...d, customer: e.target.value }))} placeholder="Nama pelanggan"/></Field><Field><FieldLabel>Nomor Telepon</FieldLabel><Input value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} placeholder="08xx-xxxx-xxxx"/></Field></div>

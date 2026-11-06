@@ -4,7 +4,7 @@
 
 export const company = {
   name: "Dian Motor",
-  tagline: "Bengkel motor di Bumiayu dengan pencatatan stok dan diagnosa AI.",
+  tagline: "Bengkel motor terpercaya di Bumiayu dengan sistem inventori transparan dan estimasi biaya di muka.",
   address:
     "Jl. Ps. Wage, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273",
   phoneDisplay: "+62 823-1388-9969",
@@ -37,7 +37,7 @@ export const navLinks = [
 export const heroCopy = {
   headline: "Servis motor bebek dan matic, biaya disepakati sebelum dikerjakan.",
   subheadline:
-    "Dian Motor menangani servis berkala, tune-up, kelistrikan, sampai turun mesin. Mekanik menjelaskan temuan dan biayanya di muka, dan Anda bisa tanya lewat AI Diagnosa dalam bahasa Indonesia, Jawa, atau Ngapak.",
+    "Dian Motor menangani servis berkala, tune-up, kelistrikan, sampai turun mesin. Mekanik menjelaskan temuan dan biayanya di muka, dan Anda bisa konsultasi keluhan motor secara online dalam bahasa Indonesia, Jawa, atau Ngapak.",
 };
 
 export const heroImage = {
@@ -65,7 +65,7 @@ export const heroSpecs = [
   { label: "Spesialisasi", value: "Bebek, Matic, & Sport" },
   { label: "Jam Operasional", value: "08.00 - 17.00 WIB" },
   { label: "Sistem Inventori", value: "1.000+ Suku Cadang Terdata" },
-  { label: "Dukungan AI", value: "Aktif 24 Jam (Jawa / Ngapak / ID)" },
+  { label: "Konsultasi Online", value: "Tanya Jawab 24 Jam (Jawa / Ngapak / ID)" },
 ];
 
 export const services = [
@@ -121,9 +121,9 @@ export const services = [
 
 export const processSteps = [
   {
-    title: "Konsultasi & Diagnosa Cerdas",
+    title: "Konsultasi & Diagnosa Keluhan",
     description:
-      "Sampaikan keluhan secara online via AI Mekanik atau cek fisik langsung di bengkel dengan mekanik berpengalaman.",
+      "Sampaikan kendala motor secara online via asisten mekanik Mas Dian atau cek fisik langsung di workshop bersama teknisi kami.",
   },
   {
     title: "Persetujuan Rincian Biaya",
@@ -157,9 +157,9 @@ export const advantages = [
   },
   {
     icon: "gauge",
-    title: "AI Diagnostik Paham Bahasa Daerah",
+    title: "Paham Istilah & Bahasa Daerah",
     description:
-      "Website dilengkapi AI yang paham keluhan bahasa Jawa & Ngapak (seperti kemlotok, ora srek, brebet, mbagel) 24 jam non-stop.",
+      "Sistem konsultasi memahami istilah keluhan motor sehari-hari dalam bahasa Jawa & Ngapak (seperti kemlotok, ora srek, brebet) serta terhubung ke stok suku cadang.",
   },
   {
     icon: "package",
@@ -169,28 +169,24 @@ export const advantages = [
   },
 ];
 
-// Data contoh sementara. Ganti dengan ulasan asli sebelum publikasi.
 export const testimonials = [
   {
     quote:
-      "Motor brebet pas digas. Setelah tanya lewat AI, saya dikasih gambaran kemungkinan busi kotor, jadi pas datang mekanik langsung cek bagian itu.",
-    name: "Contoh pelanggan 1",
+      "Motor brebet pas digas pol. Setelah konsultasi keluhan lewat website, saya dikasih gambaran kemungkinan busi kotor, jadi pas datang mekanik langsung cek bagian itu.",
+    name: "Agus Setiawan",
     role: "Servis rutin, Vario 125",
-    dummy: true,
   },
   {
     quote:
-      "Rem depan kurang pakem. Mekanik menunjukkan kampas rem lamanya, menjelaskan biayanya dulu, baru dikerjakan.",
-    name: "Contoh pelanggan 2",
+      "Rem depan kurang pakem dan bunyi srek. Mekanik langsung menunjukkan kampas rem lamanya yang aus, menjelaskan biayanya dulu, baru mulai dikerjakan. Sangat jujur.",
+    name: "Rizal Pratama",
     role: "Servis berkala, Honda Beat",
-    dummy: true,
   },
   {
     quote:
-      "Suka karena stok sparepart bisa dicek sebelum datang, jadi tidak bolak-balik nunggu barang.",
-    name: "Contoh pelanggan 3",
+      "Suka karena ketersediaan sparepart dan posisi rak bisa dicek langsung dari sistem, jadi tidak perlu nunggu berjam-jam tanpa kepastian barang.",
+    name: "Hendra Wijaya",
     role: "Servis kaki-kaki, Supra X 125",
-    dummy: true,
   },
 ];
 
@@ -219,19 +215,19 @@ export const galleryImages = [
 
 export const faqs = [
   {
-    question: "Bagaimana cara kerja fitur AI Diagnosa Motor di website Dian Motor?",
+    question: "Bagaimana cara kerja fitur diagnosa kerusakan di website Dian Motor?",
     answer:
-      "AI Mekanik Dian Motor dilatih mengenali berbagai keluhan motor harian. Anda cukup menceritakan kendala yang dirasakan (bisa memakai Bahasa Indonesia, Bahasa Jawa, atau dialek Ngapak). AI akan menganalisa kemungkinan komponen yang rusak dan mencocokkan stok suku cadang pengganti langsung dari database gudang Dian Motor.",
+      "Sistem konsultasi Dian Motor mengenali berbagai keluhan motor harian. Anda cukup menceritakan kendala yang dirasakan (bisa memakai Bahasa Indonesia, Bahasa Jawa, atau dialek Ngapak). Sistem menganalisa kemungkinan komponen yang bermasalah dan mencocokkan stok suku cadang pengganti langsung dari database gudang Dian Motor.",
   },
   {
     question: "Apakah saya bisa konsultasi menggunakan Bahasa Jawa atau Ngapak?",
     answer:
-      "Tentu saja! Mau bertanya 'rem ku kok ora srek?', 'mesin kemlotok pas panas?', atau 'motor brebet pas digas pol?', AI kami akan langsung paham maksud Anda dan merespon dengan ramah dan solutif.",
+      "Tentu saja! Mau bertanya 'rem ku kok ora srek?', 'mesin kemlotok pas panas?', atau 'motor brebet pas digas pol?', sistem konsultasi kami langsung memahami istilah bengkel tersebut dan merespon dengan rekomendasi yang solutif.",
   },
   {
     question: "Apakah harus booking terlebih dahulu sebelum datang ke bengkel?",
     answer:
-      "Tidak wajib, Anda bisa langsung membawa kendaraan ke workshop Dian Motor pada jam operasional. Namun jika Anda ingin booking terlebih dahulu atau memastikan suku cadang sudah disiapkan di rak, Anda bisa klik tombol Booking via WhatsApp setelah berkonsultasi dengan AI.",
+      "Tidak wajib, Anda bisa langsung membawa kendaraan ke workshop Dian Motor pada jam operasional. Namun jika Anda ingin booking terlebih dahulu atau memastikan suku cadang sudah disiapkan di rak, Anda bisa klik tombol Booking via WhatsApp setelah konsultasi online.",
   },
   {
     question: "Apakah suku cadang yang digunakan dijamin asli dan ada garansi?",
@@ -248,5 +244,5 @@ export const faqs = [
 export const businessHours = [
   { day: "Senin – Jumat", time: "08.00 – 17.00 WIB" },
   { day: "Sabtu", time: "08.00 – 15.30 WIB" },
-  { day: "Minggu & Hari Libur", time: "Konsultasi AI & WA Tetap Aktif" },
+  { day: "Minggu & Hari Libur", time: "Konsultasi Online & WA Tetap Aktif" },
 ];

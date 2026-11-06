@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, X, Send, Loader2 } from "lucide-react";
+import { MessageSquareText, Boxes, X, Send, Loader2 } from "lucide-react";
 
 const QUICK_PROMPTS = [
   "stok mana yg masih ada?",
@@ -61,11 +61,11 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
           <div className="flex items-center justify-between border-b border-border bg-card/60 px-4 py-3 backdrop-blur-md">
             <div className="flex items-center gap-2">
               <div className="grid size-8 place-items-center rounded-xl bg-primary/10 text-primary">
-                <Sparkles className="h-4 w-4" />
+                <Boxes className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold leading-none">Asisten Stok AI</p>
+                  <p className="text-sm font-bold leading-none">Asisten Stok Dian Motor</p>
                   <span className={`rounded px-1.5 py-0.2 font-mono text-[9px] font-bold ${isOwner ? 'bg-amber-500/15 text-amber-600' : 'bg-blue-500/15 text-blue-600'}`}>
                     {isOwner ? 'OWNER' : 'KASIR'}
                   </span>
@@ -88,10 +88,10 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
               <div className="space-y-3">
                 <div className="rounded-xl border border-border/80 bg-muted/40 p-3">
                   <p className="text-xs font-semibold text-foreground">
-                    Halo! Aku asisten cerdas Dian Motor.
+                    Halo! Asisten database stok Dian Motor siap membantu.
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                    Tanyakan ketersediaan barang, lokasi rak penyimpanan, atau harga suku cadang bengkel. Kamu bisa langsung mengetik santai atau singkat sesuai kebutuhan operasional.
+                    Tanyakan ketersediaan barang, lokasi rak penyimpanan, atau harga suku cadang bengkel secara cepat.
                   </p>
                 </div>
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -167,9 +167,9 @@ export default function AiChatWidget({ userRole = 'kasir' }) {
       <button
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-6 right-6 z-50 flex h-13 w-13 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
-        aria-label="Buka asisten AI"
+        aria-label="Buka asisten stok"
       >
-        {open ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
+        {open ? <X className="h-6 w-6" /> : <MessageSquareText className="h-6 w-6" />}
       </button>
     </>
   );

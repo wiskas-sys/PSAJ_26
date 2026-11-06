@@ -286,8 +286,27 @@ export function PaymentsDashboard({ initialPayments = [], environment, configure
                     <div className="grid grid-cols-2 gap-3 text-[12px]">
                         {[['Pelanggan', selected.customer_name || 'Pelanggan Umum'], ['Metode', selected.method || '—'], ['Tipe pembayaran', selected.payment_type || '—'], ['Dibuat', rowDate(selected)], ['Dibayar', selected.paid_at ? dateText(selected.paid_at) : '—'], ['Sumber', selected.source === 'midtrans' ? 'Midtrans' : 'Kasir']].map(([label, value]) => <div key={label}><p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-0.5 truncate font-semibold">{value}</p></div>)}
                     </div>
-                    {selected.items?.length > 0 && <div className="rounded-xl border border-border p-3"><p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Item</p><div className="grid gap-1.5">{selected.items.map((item, i) => <div key={`${item.productId}-${i}`} className="flex items-center justify-between gap-2 text-[12px]"><span className="min-w-0 truncate">{item.quantity}× {item.productName}</span><strong className="shrink-0">{rupiah(item.price * item.quantity)}</strong></div>)}</div></div>}
-                    {selected.payload && <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Payload Midtrans</p><pre className="max-h-40 overflow-auto rounded-xl bg-muted p-3 font-mono text-[10px] leading-relaxed">{JSON.stringify(selected.payload, null, 2)}</pre></div>}
+                    {(() => {
+                        const itemsList = selected.items?.length > 0 
+                            ? selected.items.map(item => ({ name: item.productName || item.name, qty: item.quantity || item.qty || 1, price: item.price }))
+                            : (Array.isArray(selected.payload?.items) 
+                                ? selected.payload.items.map(item => ({ name: item.name || item.productName, qty: item.qty || item.quantity || 1, price: item.price }))
+                                : []);
+                        if (!itemsList.length) return null;
+                        return (
+                            <div className="rounded-xl border border-border p-3">
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Rincian Barang / Jasa</p>
+                                <div className="grid gap-1.5">
+                                    {itemsList.map((item, i) => (
+                                        <div key={i} className="flex items-center justify-between gap-2 text-[12px]">
+                                            <span className="min-w-0 truncate">{item.qty}× {item.name}</span>
+                                            <strong className="shrink-0">{rupiah((item.price || 0) * (item.qty || 1))}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
                     <DialogFooter className="sm:justify-between">
                         <Button variant="outline" onClick={() => copyOrderId(selected.order_id)}><Copy data-icon="inline-start"/>Salin ID</Button>
                         <Button onClick={() => checkOne(selected)} disabled={!configured || checking === selected.order_id}>{checking === selected.order_id ? <Loader2 data-icon="inline-start" className="animate-spin"/> : <RefreshCw data-icon="inline-start"/>}{checking === selected.order_id ? 'Mengecek...' : 'Cek Status'}</Button>

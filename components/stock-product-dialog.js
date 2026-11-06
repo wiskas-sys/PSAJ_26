@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Calculator, Save, Sparkles } from 'lucide-react';
+import { Calculator, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseNumber, rupiah, todayISO, units } from '@/lib/demo-data';
 import { defaultStockCategories } from '@/lib/stock-categories';
@@ -68,7 +68,7 @@ export function StockProductDialog({ open, onOpenChange, product, onDone }) {
             <FieldGroup className="gap-4">
                 <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_150px]">
                     <Field data-invalid={!!errors.name}><FieldLabel htmlFor="pd-name">Nama Barang</FieldLabel><Input id="pd-name" value={draft.name} onChange={e => set({ name: e.target.value })} placeholder="Contoh: Oli Mesin MPX 1 0.8L" className="h-11" aria-invalid={!!errors.name}/><FieldError>{errors.name}</FieldError></Field>
-                    <Field data-invalid={!!errors.code}><FieldLabel htmlFor="pd-code">Kode Barang</FieldLabel><div className="flex gap-1.5"><Input id="pd-code" value={draft.code} onChange={e => set({ code: e.target.value.toUpperCase() })} placeholder="OLI-001" className="h-11 font-mono" aria-invalid={!!errors.code}/><Button type="button" variant="outline" size="icon-lg" onClick={async () => { try { set({ code: await suggestStockCode(draft.category) }); } catch (error) { toast.error(error.message); } }} title="Buat kode otomatis"><Sparkles/></Button></div><FieldError>{errors.code}</FieldError></Field>
+                    <Field data-invalid={!!errors.code}><FieldLabel htmlFor="pd-code">Kode Barang</FieldLabel><div className="flex gap-1.5"><Input id="pd-code" value={draft.code} onChange={e => set({ code: e.target.value.toUpperCase() })} placeholder="OLI-001" className="h-11 font-mono" aria-invalid={!!errors.code}/><Button type="button" variant="outline" size="icon-lg" onClick={async () => { try { set({ code: await suggestStockCode(draft.category) }); } catch (error) { toast.error(error.message); } }} title="Buat kode otomatis"><RefreshCw className="size-4"/></Button></div><FieldError>{errors.code}</FieldError></Field>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field data-invalid={!!errors.category}><FieldLabel>Kategori</FieldLabel><Select value={draft.category} onValueChange={v => set({ category: v })}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{[...new Set([...categories, draft.category || 'Lainnya'])].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
