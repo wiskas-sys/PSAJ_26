@@ -1,8 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, MessageCircle, Sparkles, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { heroCopy, heroSpecs } from "@/components/landing/data";
+import { heroCopy, heroImage, heroSpecs } from "@/components/landing/data";
 
 const QUICK_SYMPTOMS = [
   { label: "Rem ora srek", query: "rem ku kok ora srek" },
@@ -17,19 +18,9 @@ const QUICK_SYMPTOMS = [
 export function Hero() {
   return (
     <section id="atas" className="relative scroll-mt-20 overflow-hidden">
-      {/* glow accent tipis di belakang headline */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[450px] bg-[radial-gradient(65%_100%_at_50%_0%,var(--primary)_0%,transparent_70%)] opacity-[0.09]"
-      />
-
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 pt-16 pb-20 sm:px-8 sm:pt-24 sm:pb-28 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-14">
         <div>
-          {/* Eyebrow Pill */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary mb-4">
-            <span className="size-2 rounded-full bg-primary animate-pulse" />
-            <span>Bengkel Motor Terpercaya &amp; Sistem Terintegrasi</span>
-          </div>
+          <p className="eyebrow mb-4">Bengkel motor di Bumiayu, Brebes</p>
 
           {/* Headline */}
           <h1 className="text-3xl font-extrabold tracking-tight text-balance text-foreground sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
@@ -45,13 +36,9 @@ export function Hero() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button
               asChild
-              className="h-11 px-6 text-sm font-semibold shadow-md bg-gradient-to-r from-primary to-rose-600 hover:brightness-110 cursor-pointer"
+              className="h-11 px-6 text-sm font-semibold shadow-sm cursor-pointer"
             >
-              <Link href="/konsultasi-ai">
-                <Sparkles className="size-4 mr-2" />
-                <span>Tanya AI Diagnosa Kerusakan</span>
-                <ArrowRight className="size-4 ml-1.5" />
-              </Link>
+              <Link href="/konsultasi-ai">Tanya AI Diagnosa Kerusakan</Link>
             </Button>
 
             <Button
@@ -73,9 +60,9 @@ export function Hero() {
                 <Link
                   key={chip.label}
                   href={`/konsultasi-ai?q=${encodeURIComponent(chip.query)}`}
-                  className="rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-medium text-foreground transition-all hover:border-primary hover:bg-primary/5 hover:text-primary active:scale-95 shadow-xs"
+                  className="rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary shadow-xs"
                 >
-                  ⚡ {chip.label}
+                  {chip.label}
                 </Link>
               ))}
             </div>
@@ -88,43 +75,55 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Panel spesifikasi & Keunggulan Real-time */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-7 relative overflow-hidden">
-          <div className="flex items-center justify-between pb-4 border-b border-border">
-            <div>
-              <p className="text-xs font-bold tracking-[0.15em] text-primary uppercase">
-                INFORMASI WORKSHOP
+        {/* Foto workshop + Panel spesifikasi & Keunggulan Real-time */}
+        <div className="flex flex-col gap-5">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+            <Image
+              src={heroImage.src}
+              alt={heroImage.alt}
+              fill
+              preload
+              sizes="(max-width: 1024px) 100vw, 420px"
+              className="object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-10">
+              <p className="text-xs font-medium text-white/90">
+                Mekanik Dian Motor siap menangani motor Anda
               </p>
-              <h3 className="text-base font-bold text-foreground mt-0.5">
-                Dian Motor Center
-              </h3>
             </div>
-            <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-500">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Buka Hari Ini
-            </span>
           </div>
 
-          <dl className="mt-4 divide-y divide-border">
-            {heroSpecs.map((spec) => (
-              <div
-                key={spec.label}
-                className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
-              >
-                <dt className="text-xs sm:text-sm text-muted-foreground">{spec.label}</dt>
-                <dd className="text-right text-xs sm:text-sm font-semibold text-foreground">
-                  {spec.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-
-          <div className="mt-5 rounded-xl border border-border/80 bg-muted/40 p-3.5">
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                <strong className="text-foreground">Sistem Inventori Terbuka:</strong> Ketersediaan sparepart dan posisi rak dicek otomatis saat diagnosa, jadi Anda tidak perlu menunggu barang tanpa kepastian.
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-7 relative overflow-hidden">
+            <div className="pb-4 border-b border-border">
+              <p className="text-xs font-medium text-muted-foreground">
+                Informasi workshop
               </p>
+              <h3 className="text-base font-bold text-foreground mt-0.5">
+                Dian Motor
+              </h3>
+            </div>
+
+            <dl className="mt-4 divide-y divide-border">
+              {heroSpecs.map((spec) => (
+                <div
+                  key={spec.label}
+                  className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                >
+                  <dt className="text-xs sm:text-sm text-muted-foreground">{spec.label}</dt>
+                  <dd className="text-right text-xs sm:text-sm font-semibold text-foreground">
+                    {spec.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="mt-5 rounded-xl border border-border/80 bg-muted/40 p-3.5">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  <strong className="text-foreground">Sistem Inventori Terbuka:</strong> Ketersediaan sparepart dan posisi rak dicek otomatis saat diagnosa, jadi Anda tidak perlu menunggu barang tanpa kepastian.
+                </p>
+              </div>
             </div>
           </div>
         </div>

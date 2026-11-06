@@ -1,11 +1,10 @@
-import { Quote, Star } from "lucide-react";
+import { MessageCircle, Quote } from "lucide-react";
 
 import { Section } from "@/components/landing/Section";
-import { testimonials } from "@/components/landing/data";
+import { testimonials, whatsappLink } from "@/components/landing/data";
 
 /**
- * Testimonials: tiga kutipan pelanggan dalam grid.
- * TODO: ganti data asli — kutipan ada di components/landing/data.js
+ * Testimonials: data contoh sementara sampai ulasan asli pelanggan tersedia.
  */
 export function Testimonials() {
   return (
@@ -13,7 +12,7 @@ export function Testimonials() {
       id="testimoni"
       eyebrow="Testimoni"
       title="Cerita dari pelanggan"
-      lead="Kutipan di bawah masih placeholder. Ganti dengan testimoni asli beserta nama dan foto bila ada."
+      lead="Data di bawah masih contoh sementara. Ulasan asli akan menggantikan bagian ini setelah pelanggan memberi izin."
     >
       <div className="grid gap-5 lg:grid-cols-3">
         {testimonials.map((item) => (
@@ -21,17 +20,13 @@ export function Testimonials() {
             key={item.name}
             className="flex flex-col rounded-lg border border-border bg-card p-6 shadow-card"
           >
-            <Quote aria-hidden="true" className="size-5 text-primary" />
-
-            {/* TODO: ganti rating asli bila ada */}
-            <div className="mt-4 flex gap-0.5" aria-label="Rating 5 dari 5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  aria-hidden="true"
-                  className="size-3.5 fill-accent text-primary"
-                />
-              ))}
+            <div className="flex items-center justify-between">
+              <Quote aria-hidden="true" className="size-5 text-primary" />
+              {item.dummy ? (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  Contoh
+                </span>
+              ) : null}
             </div>
 
             <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
@@ -45,6 +40,18 @@ export function Testimonials() {
           </figure>
         ))}
       </div>
+
+      <a
+        href={whatsappLink(
+          "Halo Dian Motor, saya ingin mengirim testimoni setelah servis."
+        )}
+        target="_blank"
+        rel="noreferrer noopener"
+        className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+      >
+        <MessageCircle className="size-4" />
+        Kirim testimoni via WhatsApp
+      </a>
     </Section>
   );
 }

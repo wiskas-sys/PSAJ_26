@@ -8,7 +8,6 @@ import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
 import { ProcessSteps } from "@/components/landing/ProcessSteps";
 import { Services } from "@/components/landing/Services";
-import { StatsBar } from "@/components/landing/StatsBar";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { WhyUs } from "@/components/landing/WhyUs";
 
@@ -23,7 +22,6 @@ export default function HomePage() {
       <Header />
       <main className="flex-1">
         <Hero />
-        <StatsBar />
         <AiDiagnosticSection />
         <Services />
         <ProcessSteps />

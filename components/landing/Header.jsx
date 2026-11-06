@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X, Sparkles, MessageCircle } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -11,62 +11,95 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { navLinks, whatsappLink } from "@/components/landing/data";
 
 /**
- * Header sticky: bersih, proporsional, tanpa penumpukan teks.
+ * Header sticky dengan penanda section aktif saat halaman di-scroll.
  */
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [activeId, setActiveId] = useState("");
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const ids = navLinks
+      .map((link) => link.href.split("#")[1])
+      .filter(Boolean);
+
+    function onScroll() {
+      setScrolled(window.scrollY > 8);
+
+      let current = "";
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 96) {
+          current = id;
+        }
+      }
+      setActiveId(current);
+    }
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  function isActive(href) {
+    return href.split("#")[1] === activeId;
+  }
 
   return (
-    <header className="sticky top-0 z-50">
-      <div aria-hidden="true" className="h-0.5 w-full bg-primary" />
-
-      <div className="border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-[72px] w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5">
+      <div
+        className={cn(
+          "mx-auto w-full max-w-6xl rounded-full border border-border bg-card/90 backdrop-blur-md transition-shadow duration-200",
+          scrolled ? "shadow-lg shadow-black/5" : "shadow-sm"
+        )}
+      >
+        <div className="flex h-14 items-center justify-between gap-3 pl-4 pr-2 sm:pl-5 sm:pr-3">
           <Link href="/" className="shrink-0" aria-label="DIAN MOTOR, ke beranda">
             <Logo />
           </Link>
 
-          {/* Desktop Nav Links */}
-          <nav
-            aria-label="Navigasi utama"
-            className="hidden items-center gap-6 lg:flex"
-          >
+          <nav aria-label="Navigasi utama" className="hidden items-center gap-1 xl:flex">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                aria-current={isActive(link.href) ? "location" : undefined}
+                className={cn(
+                  "rounded-full px-3 py-2 text-[13px] font-medium transition-colors",
+                  isActive(link.href)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
               >
                 {link.label}
               </a>
             ))}
           </nav>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5">
-            <ThemeToggle className="size-9 rounded-lg" />
-
-            {/* Standout AI Button */}
-            <Button
-              asChild
-              className="h-9 rounded-full px-3.5 bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold text-xs shadow-sm hover:brightness-110 cursor-pointer"
-            >
-              <Link href="/konsultasi-ai" className="flex items-center gap-1.5">
-                <Sparkles className="size-3.5 animate-pulse text-amber-200" />
-                <span>AI Diagnosa</span>
-                <span className="rounded-full bg-black/25 px-1.5 py-0.2 text-[9px] font-bold">
-                  24 Jam
-                </span>
-              </Link>
-            </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="size-9 rounded-full" />
 
             <Button
               asChild
-              size="sm"
-              variant="outline"
-              className="hidden xl:inline-flex h-9 px-4 border-border text-xs font-semibold cursor-pointer"
+              className="hidden h-9 rounded-full px-4 text-xs font-semibold cursor-pointer sm:inline-flex"
             >
-              <a href="/#kontak">Hubungi Kami</a>
+              <Link href="/konsultasi-ai">AI Diagnosa</Link>
             </Button>
 
             <button
@@ -75,7 +108,7 @@ export function Header() {
               aria-expanded={open}
               aria-controls="menu-mobile"
               aria-label={open ? "Tutup menu" : "Buka menu"}
-              className="inline-flex size-9 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:bg-muted lg:hidden cursor-pointer"
+              className="inline-flex size-9 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted xl:hidden cursor-pointer"
             >
               {open ? <X className="size-4" /> : <Menu className="size-4" />}
             </button>
@@ -83,51 +116,47 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
       {open ? (
         <div
           id="menu-mobile"
-          className="border-b border-border bg-background lg:hidden animate-in slide-in-from-top-2 duration-150"
+          className="mx-auto mt-2 w-full max-w-6xl rounded-3xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur-md xl:hidden animate-in slide-in-from-top-2 duration-150"
         >
           <nav
             aria-label="Navigasi mobile"
-            className="mx-auto flex w-full max-w-6xl flex-col px-5 py-3 space-y-1"
+            className="flex w-full flex-col gap-1"
           >
-            <Link
-              href="/konsultasi-ai"
-              onClick={() => setOpen(false)}
-              className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary my-1"
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-4 text-primary" />
-                <span>AI Diagnosa Motor</span>
-              </div>
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                Aktif 24 Jam
-              </span>
-            </Link>
+            <Button asChild className="mb-2 h-11 w-full rounded-full cursor-pointer">
+              <Link href="/konsultasi-ai" onClick={() => setOpen(false)}>
+                AI Diagnosa Motor
+              </Link>
+            </Button>
 
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
+                aria-current={isActive(link.href) ? "location" : undefined}
                 className={cn(
-                  "border-b border-border/50 py-2.5 text-sm font-medium text-muted-foreground last:border-b-0",
-                  "transition-colors hover:text-foreground"
+                  "rounded-full px-4 py-2.5 text-sm font-medium transition-colors",
+                  isActive(link.href)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 {link.label}
               </a>
             ))}
 
-            <div className="pt-3 pb-2">
-              <Button asChild variant="outline" className="h-10 w-full cursor-pointer">
-                <a href="/#kontak" onClick={() => setOpen(false)}>
-                  Hubungi Workshop
-                </a>
-              </Button>
-            </div>
+            <a
+              href={whatsappLink("Halo Dian Motor, saya ingin bertanya.")}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={() => setOpen(false)}
+              className="mt-2 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-emerald-500/40 hover:text-emerald-500"
+            >
+              Chat via WhatsApp
+            </a>
           </nav>
         </div>
       ) : null}

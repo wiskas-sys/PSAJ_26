@@ -4,15 +4,17 @@
 
 export const company = {
   name: "Dian Motor",
-  tagline: "Bengkel motor modern dengan sistem inventori cerdas & AI diagnosa terintegrasi.",
-  address: "Jl. Veteran No. 26, Dian Motor Workshop Center",
-  phoneDisplay: "+62 812-2605-2026",
-  whatsapp: "6281226052026",
-  email: "layanan@dianmotor.co.id",
-  mapsQuery: "Dian Motor Workshop",
+  tagline: "Bengkel motor di Bumiayu dengan pencatatan stok dan diagnosa AI.",
+  address:
+    "Jl. Ps. Wage, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273",
+  phoneDisplay: "+62 823-1388-9969",
+  whatsapp: "6282313889969",
+  email: "dmotor80@gmail.com",
+  mapsQuery: "Jl. Ps. Wage, Jatisawit, Bumiayu, Brebes",
   mapsEmbed:
-    "https://maps.google.com/maps?q=Dian%20Motor&t=&z=15&ie=UTF8&iwloc=&output=embed",
-  mapsLink: "https://maps.google.com/?q=Dian+Motor",
+    "https://maps.google.com/maps?q=Jl.%20Ps.%20Wage%2C%20Jatisawit%2C%20Bumiayu%2C%20Brebes&t=&z=16&ie=UTF8&iwloc=&output=embed",
+  mapsLink:
+    "https://maps.google.com/?q=Jl.+Ps.+Wage,+Jatisawit,+Bumiayu,+Brebes",
 };
 
 export const whatsappLink = (message = "") =>
@@ -22,34 +24,48 @@ export const whatsappLink = (message = "") =>
 
 // Nav header & footer links
 export const navLinks = [
-  { label: "Tentang", href: "/#tentang" },
+  { label: "Konsultasi Pelanggan", href: "/#ai-diagnosa" },
   { label: "Layanan", href: "/#layanan" },
   { label: "Alur Servis", href: "/#alur" },
   { label: "Keunggulan", href: "/#keunggulan" },
+  { label: "Tentang", href: "/#tentang" },
   { label: "Testimoni", href: "/#testimoni" },
   { label: "FAQ", href: "/#faq" },
   { label: "Kontak", href: "/#kontak" },
 ];
 
 export const heroCopy = {
-  headline: "Servis motor terpercaya, transparan, dan didukung AI diagnosa.",
+  headline: "Servis motor bebek dan matic, biaya disepakati sebelum dikerjakan.",
   subheadline:
-    "Dian Motor melayani servis berkala, tune-up, kelistrikan, hingga turun mesin untuk motor bebek dan matic. Dilengkapi AI Problem Solving yang mengerti keluhan bahasa daerah dan sistem stok suku cadang real-time.",
+    "Dian Motor menangani servis berkala, tune-up, kelistrikan, sampai turun mesin. Mekanik menjelaskan temuan dan biayanya di muka, dan Anda bisa tanya lewat AI Diagnosa dalam bahasa Indonesia, Jawa, atau Ngapak.",
+};
+
+export const heroImage = {
+  src: "/images/landing/hero-workshop.jpg",
+  alt: "Mekanik Dian Motor sedang menyervis mesin motor di workshop",
+};
+
+export const aboutImage = {
+  src: "/images/landing/about-parts.jpg",
+  alt: "Rak peralatan dan suku cadang yang tertata di workshop Dian Motor",
+};
+
+export const whyUsImage = {
+  src: "/images/landing/whyus-engine.jpg",
+  alt: "Close-up mekanik memeriksa komponen mesin motor",
+};
+
+export const contactImage = {
+  src: "/images/landing/contact-workshop.jpg",
+  alt: "Suasana ruang kerja bengkel Dian Motor yang penuh peralatan",
 };
 
 export const heroSpecs = [
-  { label: "Pengalaman", value: "Sejak 2009 (15+ Tahun)" },
+  { label: "Pengalaman", value: "13 Tahun" },
   { label: "Spesialisasi", value: "Bebek, Matic, & Sport" },
   { label: "Jam Operasional", value: "08.00 - 17.00 WIB" },
   { label: "Sistem Inventori", value: "1.000+ Suku Cadang Terdata" },
   { label: "Dukungan AI", value: "Aktif 24 Jam (Jawa / Ngapak / ID)" },
-];
-
-export const stats = [
-  { value: "15+", label: "Tahun Melayani Pelanggan" },
-  { value: "12.000+", label: "Motor Sukses Diservis" },
-  { value: "1.000+", label: "SKU Suku Cadang Terdata Real-Time" },
-  { value: "99%", label: "Kepuasan Pelanggan & Konsultasi" },
 ];
 
 export const services = [
@@ -60,6 +76,10 @@ export const services = [
       "Ganti oli mesin/gardan, pembersihan busi, filter udara, kalibrasi injeksi/karburator, dan penyetelan rantai/rem.",
     price: "Rp 60.000 - 120.000",
     meta: "Durasi ~45 menit",
+    image: {
+      src: "/images/landing/service-tune-up.jpg",
+      alt: "Pengisian oli mesin motor saat servis rutin",
+    },
   },
   {
     icon: "zap",
@@ -68,6 +88,10 @@ export const services = [
       "Uji kesehatan aki (CCA & voltase), servis dinamo starter, relay, bendik, perapihan kabel body, dan lampu LED.",
     price: "Rp 85.000 - 350.000",
     meta: "Garansi pemasangan",
+    image: {
+      src: "/images/landing/service-electrical.jpg",
+      alt: "Mekanik memeriksa sistem kelistrikan dan aki motor",
+    },
   },
   {
     icon: "package",
@@ -76,6 +100,10 @@ export const services = [
       "Atasi gredek getar awal, ganti v-belt, roller, slider, pembersihan mangkok kopling ganda, dan pelumasan grease high-temp.",
     price: "Rp 65.000 - 250.000",
     meta: "Suku cadang ready di rak",
+    image: {
+      src: "/images/landing/service-cvt.jpg",
+      alt: "Motor matic dibongkar untuk perawatan CVT di workshop",
+    },
   },
   {
     icon: "gauge",
@@ -84,6 +112,10 @@ export const services = [
       "Penanganan mesin ngebul/kemlotok, skir klep, ganti bearing kruk as/roda, perbaikan shockbreaker, dan ganti kampas rem.",
     price: "Mulai Rp 250.000",
     meta: "Estimasi biaya di muka",
+    image: {
+      src: "/images/landing/service-engine.jpg",
+      alt: "Mekanik menangani overhaul komponen mesin motor",
+    },
   },
 ];
 
@@ -137,24 +169,28 @@ export const advantages = [
   },
 ];
 
+// Data contoh sementara. Ganti dengan ulasan asli sebelum publikasi.
 export const testimonials = [
   {
     quote:
-      "Sangat puas servis di Dian Motor. Waktu motor brebet, saya coba tanya di fitur AI-nya dulu pakai bahasa Jawa 'motor brebet pas digas', langsung dikasih tau kemungkinan busi kotor dan stoknya ada. Datang ke bengkel langsung dikerjakan!",
-    name: "Mas Budi Santoso",
-    role: "Pengendara Vario 125, Pelanggan Rutin",
+      "Motor brebet pas digas. Setelah tanya lewat AI, saya dikasih gambaran kemungkinan busi kotor, jadi pas datang mekanik langsung cek bagian itu.",
+    name: "Contoh pelanggan 1",
+    role: "Servis rutin, Vario 125",
+    dummy: true,
   },
   {
     quote:
-      "Rem depan bunyi srek-srek dan kurang pakem. Mekanik cek langsung dan tunjukkan kampas rem lamanya yang sudah tipis. Harganya pas, nota transparan, dan pelayanannya sangat ramah.",
-    name: "Ibu Rahmawati",
-    role: "Pengendara Honda Beat, Servis Berkala",
+      "Rem depan kurang pakem. Mekanik menunjukkan kampas rem lamanya, menjelaskan biayanya dulu, baru dikerjakan.",
+    name: "Contoh pelanggan 2",
+    role: "Servis berkala, Honda Beat",
+    dummy: true,
   },
   {
     quote:
-      "Yang paling saya suka itu keterbukaan stoknya. Tidak perlu nunggu seharian atau disuruh cari part sendiri keluar. Di sistem mereka langsung kelihatan di rak mana barangnya ada.",
-    name: "Pak Joko Susilo",
-    role: "Pengendara Supra X 125, Servis Kaki-kaki",
+      "Suka karena stok sparepart bisa dicek sebelum datang, jadi tidak bolak-balik nunggu barang.",
+    name: "Contoh pelanggan 3",
+    role: "Servis kaki-kaki, Supra X 125",
+    dummy: true,
   },
 ];
 
@@ -163,6 +199,22 @@ export const galleryImages = [
   { src: "/gallery-2.jpg", alt: "Peralatan mekanik presisi dan diagnosis modern" },
   { src: "/gallery-3.jpg", alt: "Rak penyimpanan 1.000+ suku cadang terdata rapi" },
   { src: "/gallery-4.jpg", alt: "Mekanik profesional sedang menangani servis motor" },
+  {
+    src: "/images/landing/gallery-5.jpg",
+    alt: "Motor sport diangkat di lift untuk pemeriksaan kaki-kaki",
+  },
+  {
+    src: "/images/landing/gallery-6.jpg",
+    alt: "Motor custom sedang dirakit di area workshop",
+  },
+  {
+    src: "/images/landing/gallery-7.jpg",
+    alt: "Dua mekanik bekerja bersama memperbaiki motor pelanggan",
+  },
+  {
+    src: "/images/landing/gallery-8.jpg",
+    alt: "Mekanik menggunakan kunci untuk membongkar komponen motor",
+  },
 ];
 
 export const faqs = [

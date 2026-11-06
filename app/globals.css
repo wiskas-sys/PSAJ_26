@@ -125,7 +125,7 @@
 
 .input-with-icon { position: relative; display: block; }
 .input-with-icon > svg { position: absolute; top: 50%; left: 13px; z-index: 1; color: var(--muted-foreground); transform: translateY(-50%); }
-.input-with-icon > *:not(svg) { padding-left: 40px; }
+.input-with-icon > input { padding-left: 40px; }
 
 /* background fx: faint grid used on login & app shell */
 .fx-grid {
@@ -148,9 +148,16 @@
 @keyframes menu-in { from { opacity: 0; transform: translateY(-5px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes login-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes login-drift { 0%, 100% { transform: scale(1.05) translate3d(0, 0, 0); } 50% { transform: scale(1.09) translate3d(-1.5%, -1%, 0); } }
 @keyframes live-beacon { 0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, .32); } 70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); } 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
 
 .animate-login-rise { animation: login-rise .55s ease both; animation-delay: var(--rise-delay, 0ms); }
+.animate-login-drift { animation: login-drift 36s ease-in-out infinite; will-change: transform; }
+.animate-live-beacon { animation: live-beacon 2.4s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-login-rise, .animate-login-drift, .animate-live-beacon { animation: none; }
+}
 
 /* scrollbars */
 ::-webkit-scrollbar { width: 10px; height: 10px; }

@@ -1,6 +1,8 @@
+import Image from "next/image";
 import { ClipboardList, Package, Wrench } from "lucide-react";
 
 import { Section } from "@/components/landing/Section";
+import { aboutImage } from "@/components/landing/data";
 
 const highlights = [
   { icon: Wrench, label: "Servis dan perbaikan" },
@@ -41,31 +43,42 @@ export function About() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6 shadow-card sm:p-7">
-          <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-            {/* TODO: ganti judul kartu */}
-            Ringkasan
-          </p>
+        <div className="flex flex-col gap-5">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-card shadow-card">
+            <Image
+              src={aboutImage.src}
+              alt={aboutImage.alt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 460px"
+              className="object-cover"
+            />
+          </div>
 
-          <ul className="mt-6 space-y-4">
-            {highlights.map((item) => (
-              <li key={item.label} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-primary">
-                  <item.icon className="size-4" />
-                </span>
-                <span className="pt-1.5 text-sm font-medium text-foreground">
-                  {item.label}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-7 border-t border-border pt-6">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {/* TODO: ganti kalimat penutup kartu */}
-              Punya pertanyaan soal komponen atau perkiraan biaya? Chat dulu,
-              kami bantu jelaskan sebelum motor naik ke rak servis.
+          <div className="rounded-lg border border-border bg-card p-6 shadow-card sm:p-7">
+            <p className="text-sm font-semibold text-foreground">
+              Ringkasan
             </p>
+
+            <ul className="mt-6 space-y-4">
+              {highlights.map((item) => (
+                <li key={item.label} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-primary">
+                    <item.icon className="size-4" />
+                  </span>
+                  <span className="pt-1.5 text-sm font-medium text-foreground">
+                    {item.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-7 border-t border-border pt-6">
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {/* TODO: ganti kalimat penutup kartu */}
+                Punya pertanyaan soal komponen atau perkiraan biaya? Chat dulu,
+                kami bantu jelaskan sebelum motor naik ke rak servis.
+              </p>
+            </div>
           </div>
         </div>
       </div>

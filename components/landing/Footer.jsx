@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, Sparkles, MessageCircle, Phone, Mail, MapPin } from "lucide-react";
+import { Lock, MessageCircle, Phone, Mail, MapPin } from "lucide-react";
 
 import { Logo } from "@/components/landing/Logo";
 import { company, navLinks, whatsappLink } from "@/components/landing/data";
@@ -27,30 +27,23 @@ export function Footer() {
                 {company.tagline}
               </p>
 
-              <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary font-medium">
-                <Sparkles className="size-3.5" />
-                <span>AI Diagnostik Aktif 24 Jam</span>
-              </div>
+              <p className="mt-5 text-xs text-muted-foreground">
+                AI Diagnosa aktif 24 jam.
+              </p>
             </div>
 
             <div>
-              <p className="text-xs font-bold tracking-[0.18em] text-foreground uppercase">
-                Navigasi &amp; Fitur
+              <p className="text-sm font-semibold text-foreground">
+                Navigasi
               </p>
               <ul className="mt-4 space-y-2.5">
                 {navLinks.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline inline-flex items-center gap-1.5"
+                      className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
                     >
-                      {link.badge && <Sparkles className="size-3 text-primary" />}
-                      <span>{link.label}</span>
-                      {link.badge && (
-                        <span className="rounded bg-primary/20 px-1 py-0.2 text-[9px] font-bold text-primary">
-                          {link.badge}
-                        </span>
-                      )}
+                      {link.label}
                     </Link>
                   </li>
                 ))}
@@ -69,8 +62,8 @@ export function Footer() {
             </div>
 
             <div>
-              <p className="text-xs font-bold tracking-[0.18em] text-foreground uppercase">
-                Kontak &amp; Workshop
+              <p className="text-sm font-semibold text-foreground">
+                Kontak dan workshop
               </p>
               <address className="mt-4 space-y-2.5 text-sm not-italic text-muted-foreground">
                 <p className="flex items-start gap-2">
@@ -101,7 +94,7 @@ export function Footer() {
 
           <div className="mt-12 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} {company.name}. Sistem Inventori &amp; Diagnosa Motor Terintegrasi.
+              &copy; {new Date().getFullYear()} {company.name}. Sistem inventori dan diagnosa motor.
             </p>
 
             <div className="flex items-center gap-3">

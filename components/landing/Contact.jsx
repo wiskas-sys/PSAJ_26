@@ -1,8 +1,14 @@
+import Image from "next/image";
 import { Clock, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/landing/Section";
-import { businessHours, company, whatsappLink } from "@/components/landing/data";
+import {
+  businessHours,
+  company,
+  contactImage,
+  whatsappLink,
+} from "@/components/landing/data";
 
 /**
  * Contact: detail workshop, tombol WhatsApp, jam buka, dan slot peta.
@@ -120,6 +126,16 @@ export function Contact() {
               referrerPolicy="no-referrer-when-downgrade"
               allowFullScreen
               className="absolute inset-0 h-full w-full"
+            />
+          </div>
+
+          <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-border bg-card shadow-card">
+            <Image
+              src={contactImage.src}
+              alt={contactImage.alt}
+              fill
+              sizes="(max-width: 1024px) 100vw, 620px"
+              className="object-cover"
             />
           </div>
 

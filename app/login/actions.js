@@ -37,7 +37,7 @@ export async function loginAction(_, formData) {
         redirect('/dashboard');
     }
 
-    return { error: 'Email atau password tidak cocok.' };
+    return { error: 'Email atau kata sandi tidak cocok.' };
 }
 
 export async function logoutAction() {

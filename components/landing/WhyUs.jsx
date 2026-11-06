@@ -1,7 +1,8 @@
+import Image from "next/image";
 import { Clipboard, Gauge, Package, ShieldCheck } from "lucide-react";
 
 import { Section } from "@/components/landing/Section";
-import { advantages } from "@/components/landing/data";
+import { advantages, whyUsImage } from "@/components/landing/data";
 
 const icons = {
   clipboard: Clipboard,
@@ -21,6 +22,16 @@ export function WhyUs() {
       eyebrow="Kenapa Dian Motor"
       title="Yang membuat beda di garansi dan di nota"
     >
+      <div className="relative mb-8 aspect-[21/9] overflow-hidden rounded-lg border border-border bg-card shadow-card">
+        <Image
+          src={whyUsImage.src}
+          alt={whyUsImage.alt}
+          fill
+          sizes="(max-width: 1024px) 100vw, 1152px"
+          className="object-cover"
+        />
+      </div>
+
       <div className="grid gap-5 sm:grid-cols-2">
         {advantages.map((item) => {
           const Icon = icons[item.icon] ?? Package;

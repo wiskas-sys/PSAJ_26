@@ -4,17 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Wrench,
-  Sparkles,
-  Send,
   Loader2,
   CheckCircle,
   AlertTriangle,
   Package,
-  ArrowRight,
   MessageCircle,
   HelpCircle,
   ShieldCheck,
   Cpu,
+  Wallet,
 } from "lucide-react";
 import { Section } from "@/components/landing/Section";
 import { Button } from "@/components/ui/button";
@@ -154,10 +152,9 @@ export function AiDiagnosticSection() {
   return (
     <Section
       id="ai-diagnosa"
-      className="relative bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(220,38,38,0.1),rgba(255,255,255,0))]"
-      eyebrow="✨ KONSULTASI CERDAS PELANGGAN"
-      title="AI Problem Solving: Diagnosa Motor & Cek Suku Cadang"
-      lead="Bingung motor terasa tidak enak? Ceritakan keluhan motormu dengan bahasa santai, Boso Jowo, maupun dialek Ngapak. AI Mekanik kami siap menganalisa penyebabnya dan mengecek ketersediaan suku cadang resmi di Dian Motor secara instan."
+      eyebrow="Konsultasi pelanggan"
+      title="Diagnosa motor dan cek stok suku cadang"
+      lead="Ceritakan keluhan motor Anda dengan bahasa sehari-hari, Boso Jowo, atau dialek Ngapak. AI Mekanik akan menyebut kemungkinan penyebabnya dan mengecek ketersediaan suku cadang di Dian Motor."
     >
       <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
         {/* Kolom Kiri: Input Keluhan & Chip Gejala Populer */}
@@ -208,7 +205,7 @@ export function AiDiagnosticSection() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="size-4" />
+                    <Wrench className="size-4" />
                     <span>Diagnosa Kerusakan Sekarang</span>
                   </>
                 )}
@@ -217,10 +214,10 @@ export function AiDiagnosticSection() {
 
             {/* Bahasa Dukungan */}
             <div className="mt-4 pt-4 border-t border-border/80 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="font-semibold text-foreground">Dukungan Bahasa:</span>
-              <span className="rounded bg-muted px-1.5 py-0.5">🇮🇩 Indonesia</span>
-              <span className="rounded bg-muted px-1.5 py-0.5">🌾 Jawa</span>
-              <span className="rounded bg-muted px-1.5 py-0.5">⚡ Ngapak</span>
+              <span className="font-semibold text-foreground">Dukungan bahasa:</span>
+              <span className="rounded bg-muted px-1.5 py-0.5">Indonesia</span>
+              <span className="rounded bg-muted px-1.5 py-0.5">Jawa</span>
+              <span className="rounded bg-muted px-1.5 py-0.5">Ngapak</span>
             </div>
           </div>
 
@@ -259,7 +256,7 @@ export function AiDiagnosticSection() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="relative mb-4">
-                  <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary animate-pulse">
+                  <div className="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
                     <Wrench className="size-7" />
                   </div>
                   <Loader2 className="absolute -bottom-1 -right-1 size-5 animate-spin text-primary" />
@@ -306,8 +303,7 @@ export function AiDiagnosticSection() {
                 <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                   <Button asChild className="flex-1 h-10 gap-2 rounded-xl text-xs font-semibold cursor-pointer">
                     <Link href={`/konsultasi-ai?q=${encodeURIComponent(result.originalQuery)}`}>
-                      <span>Lanjut Ngobrol di Halaman AI Penuh</span>
-                      <ArrowRight className="size-3.5" />
+                      Lanjut ngobrol di halaman AI
                     </Link>
                   </Button>
 
@@ -348,7 +344,7 @@ export function AiDiagnosticSection() {
                     Cek stok 1.000+ suku cadang
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Sparkles className="size-4 text-primary" />
+                    <Wallet className="size-4 text-primary" />
                     Solusi hemat &amp; transparan
                   </span>
                 </div>
@@ -360,10 +356,9 @@ export function AiDiagnosticSection() {
               <span>Sistem AI terhubung langsung ke inventori resmi Dian Motor</span>
               <Link
                 href="/konsultasi-ai"
-                className="font-medium text-primary hover:underline inline-flex items-center gap-1"
+                className="font-medium text-primary hover:underline"
               >
-                <span>Buka Halaman AI Penuh</span>
-                <ArrowRight className="size-3" />
+                Buka halaman AI
               </Link>
             </div>
           </div>

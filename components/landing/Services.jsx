@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Gauge, Package, Wrench, Zap, Sparkles, ArrowRight } from "lucide-react";
+import { Gauge, Package, Wrench, Zap } from "lucide-react";
 
 import { Section } from "@/components/landing/Section";
 import {
@@ -32,17 +33,22 @@ export function Services() {
           return (
             <Card
               key={service.title}
-              className="group gap-0 rounded-2xl border border-border bg-card py-0 shadow-card ring-0 transition-all duration-300 hover:shadow-card-hover hover:border-primary/40 hover:-translate-y-1"
+              className="group gap-0 overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-card ring-0 transition-colors hover:border-primary/40"
             >
+              <div className="relative aspect-[16/10] overflow-hidden border-b border-border bg-muted">
+                <Image
+                  src={service.image.src}
+                  alt={service.image.alt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 285px"
+                  className="object-cover"
+                />
+              </div>
+
               <CardHeader className="px-5 pt-6">
-                <div className="flex items-center justify-between">
-                  <span className="flex size-10 items-center justify-center rounded-xl border border-border bg-background text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    <Icon className="size-5" />
-                  </span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    Resmi
-                  </span>
-                </div>
+                <span className="flex size-10 items-center justify-center rounded-xl border border-border bg-background text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Icon className="size-5" />
+                </span>
                 <CardTitle className="mt-4 text-base font-bold text-foreground">
                   {service.title}
                 </CardTitle>
@@ -68,20 +74,16 @@ export function Services() {
       {/* Banner CTA Bawah Layanan */}
       <div className="mt-10 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <h4 className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            <span>Punya keluhan mesin, bunyi aneh, atau tarikan berat?</span>
+          <h4 className="text-sm sm:text-base font-bold text-foreground">
+            Punya keluhan mesin, bunyi aneh, atau tarikan berat?
           </h4>
           <p className="text-xs text-muted-foreground mt-1">
             Gunakan AI Diagnosa Dian Motor untuk mendeteksi sumber kerusakan dan cek suku cadangnya sebelum datang ke bengkel.
           </p>
         </div>
 
-        <Button asChild size="sm" className="shrink-0 h-10 px-5 gap-1.5 cursor-pointer">
-          <Link href="/konsultasi-ai">
-            <span>Coba AI Diagnosa Sekarang</span>
-            <ArrowRight className="size-3.5" />
-          </Link>
+        <Button asChild size="sm" className="shrink-0 h-10 px-5 cursor-pointer">
+          <Link href="/konsultasi-ai">Coba AI Diagnosa</Link>
         </Button>
       </div>
     </Section>

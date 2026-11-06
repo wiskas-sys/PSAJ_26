@@ -4,15 +4,14 @@ import { Section } from "@/components/landing/Section";
 import { galleryImages } from "@/components/landing/data";
 
 /**
- * Gallery: empat foto placeholder dari /public.
- * TODO: ganti data asli — ganti file gambar dan alt di components/landing/data.js
- * Ukuran gambar saat ini 1200x800 (4:3). Sesuaikan `sizes` bila rasio berubah.
+ * Gallery: dokumentasi workshop dalam grid responsif.
+ * Daftar gambar dan alt ada di components/landing/data.js.
  */
 export function Gallery() {
   return (
     <Section id="galeri" eyebrow="Galeri" title="Isi workshop kami">
-      <div className="grid gap-4 sm:grid-cols-2">
-        {galleryImages.map((image, index) => (
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {galleryImages.map((image) => (
           <div
             key={image.src}
             className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-card shadow-card"
@@ -21,18 +20,15 @@ export function Gallery() {
               src={image.src}
               alt={image.alt}
               fill
-              priority={index === 0}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 576px"
+              sizes="(max-width: 1024px) 50vw, 285px"
               className="object-cover"
             />
           </div>
         ))}
       </div>
 
-      {/* TODO: ganti catatan galeri */}
       <p className="mt-8 text-sm text-muted-foreground">
-        Foto di atas masih contoh. Ganti dengan dokumentasi workspace, rak
-        sparepart, dan proses kerja yang sebenarnya.
+        Foto: Unsplash dan Pexels.
       </p>
     </Section>
   );
