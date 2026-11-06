@@ -25,7 +25,7 @@ const DEFAULT_PROFILE = {
     telepon: '+62 823-1388-9969',
     jamOperasional: 'Setiap Hari, 08.30 – 22.00 WIB',
     alamat: 'Jl. Ps. Wage No. 19, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273',
-    rekening: 'BCA: 0461782991 a.n. DIAN MOTOR',
+    rekening: 'BCA: 1590676221 a.n. Diyan Purwanti',
 };
 
 const DEFAULT_PREFS = { 
@@ -38,7 +38,7 @@ const DEFAULT_PREFS = {
 const DEFAULT_PAY_METHODS = { 
     'Kas Tunai POS (Cash Fisik)': true, 
     'QRIS Dinamis (Standar Nasional)': true, 
-    'Transfer Bank BCA (0461782991 a.n. DIAN MOTOR)': true 
+    'Transfer Bank BCA (1590676221 a.n. Diyan Purwanti)': true 
 };
 
 export default function Page() {
@@ -258,7 +258,7 @@ export default function Page() {
                                             <div>
                                                 <span className="text-[13px] font-semibold">{m}</span>
                                                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                                                    {m.includes('Tunai') ? 'Pembayaran uang fisik langsung dengan kalkulasi kembalian otomatis.' : m.includes('QRIS') ? 'Scan QRIS Standar Nasional dengan nominal pas.' : 'Transfer ke rekening resmi toko BCA: 0461782991.'}
+                                                    {m.includes('Tunai') ? 'Pembayaran uang fisik langsung dengan kalkulasi kembalian otomatis.' : m.includes('QRIS') ? 'Scan QRIS Standar Nasional dengan nominal pas.' : 'Transfer ke rekening resmi toko BCA: 1590676221 a.n. Diyan Purwanti.'}
                                                 </p>
                                             </div>
                                             <Switch on={payMethods[m]} onChange={togglePay(m)}/>

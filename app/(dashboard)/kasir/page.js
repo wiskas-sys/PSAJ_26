@@ -438,7 +438,7 @@ export default function PosPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText('0461782991');
+                    navigator.clipboard.writeText('1590676221');
                     toast.success('No. Rekening BCA berhasil disalin!');
                   }}
                   className="rounded bg-blue-500/20 px-2 py-0.5 text-[11px] font-bold text-blue-300 hover:bg-blue-500/30 transition-colors"
@@ -446,8 +446,8 @@ export default function PosPage() {
                   Salin Rekening
                 </button>
               </div>
-              <p className="font-mono text-base font-extrabold tracking-wider text-white">0461782991</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">A.N: <strong className="text-foreground">DIAN MOTOR (BCA)</strong></p>
+              <p className="font-mono text-base font-extrabold tracking-wider text-white">1590676221</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">A.N: <strong className="text-foreground">Diyan Purwanti (BCA)</strong></p>
               <div className="mt-2 rounded-lg bg-blue-950/40 p-2 text-[10px] text-blue-200 border border-blue-500/20">
                 💡 Cek mutasi masuk di BCA Mobile / KlikBCA, lalu klik tombol <strong>Bayar</strong> untuk mencatat lunas.
               </div>
@@ -583,7 +583,7 @@ export default function PosPage() {
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        navigator.clipboard.writeText('0461782991');
+                                        navigator.clipboard.writeText('1590676221');
                                         toast.success('No. Rekening BCA disalin!');
                                     }}
                                     className="rounded bg-blue-500/20 px-2 py-0.5 text-[11px] font-bold text-blue-300 hover:bg-blue-500/30"
@@ -591,8 +591,8 @@ export default function PosPage() {
                                     Salin Rekening
                                 </button>
                             </div>
-                            <p className="font-mono text-base font-extrabold tracking-wider text-white">0461782991</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">A.N: <strong className="text-foreground">DIAN MOTOR (BCA)</strong></p>
+                            <p className="font-mono text-base font-extrabold tracking-wider text-white">1590676221</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">A.N: <strong className="text-foreground">Diyan Purwanti (BCA)</strong></p>
                             <div className="mt-2.5 rounded-lg bg-blue-950/40 p-2 text-[10px] text-blue-200 border border-blue-500/20">
                                 💡 Pelanggan transfer sesuai nominal tagihan. Cek mutasi BCA Mobile, lalu klik <strong>Konfirmasi & Cetak Struk</strong>.
                             </div>

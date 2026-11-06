@@ -262,8 +262,8 @@ export function PaymentsDashboard({ initialPayments = [], environment, configure
             <CardContent className="grid gap-3 sm:grid-cols-3 pt-0">
                 <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-3.5">
                     <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">Transfer Bank Resmi</p>
-                    <p className="text-base font-extrabold mt-1 text-foreground font-mono">BCA: 0461782991</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">A.N. DIAN MOTOR</p>
+                    <p className="text-base font-extrabold mt-1 text-foreground font-mono">BCA: 1590676221</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">A.N. Diyan Purwanti</p>
                 </div>
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3.5">
                     <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">QRIS Standar Nasional</p>

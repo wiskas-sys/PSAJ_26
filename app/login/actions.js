@@ -28,10 +28,11 @@ export async function loginAction(_, formData) {
     const demoUser = findDemoUser(email, password);
     if (loggedIn || demoUser) {
         const store = await cookies();
+        const isOwner = email.includes('owner') || email.includes('sahal') || email.includes('ahmad');
         const sessionUser = demoUser || {
             email,
-            name: email.includes('owner') ? 'Owner Dian Motor' : 'Kasir Dian Motor',
-            role: email.includes('owner') ? 'admin' : 'kasir',
+            name: isOwner ? 'Ahmad Sahal (Owner)' : 'Kasir Shift Dian Motor',
+            role: isOwner ? 'admin' : 'kasir',
         };
         store.set(DEMO_SESSION_COOKIE, encodeDemoSession(sessionUser), sessionCookieOptions(remember));
         redirect('/dashboard');

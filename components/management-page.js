@@ -13,10 +13,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 
 const INITIAL = {
     Pengguna: [
-        ['Owner Utama Dian Motor', 'owner@dianmotor.co.id', 'Owner', 'Aktif'],
-        ['Co-Owner Dian Motor', 'owner2@dianmotor.co.id', 'Owner', 'Aktif'],
-        ['Supervisor Dian Motor', 'owner3@dianmotor.co.id', 'Owner', 'Aktif'],
-        ['Kasir Shift Dian Motor', 'kasir@dianmotor.co.id', 'Kasir', 'Aktif'],
+        ['Ahmad Sahal', 'ahmadsahal8@mail.com', 'Owner', 'Aktif'],
+        ['Kasir Shift Dian Motor', 'dmotor80@gmail.com', 'Kasir', 'Aktif'],
     ],
 };
 const headers = { Produk: ['Kode', 'Nama Produk', 'Kategori', 'Stok', 'Harga Jual', 'Status'], Kategori: ['Nama', 'Deskripsi', 'Jumlah'], Supplier: ['Nama Supplier', 'Nomor Telepon', 'Email', 'Produk'], Pelanggan: ['Nama', 'Nomor Telepon', 'Alamat', 'Riwayat'], Servis: ['Nomor Servis', 'Pelanggan', 'Kendaraan', 'Jenis Servis', 'Status'], Transaksi: ['ID Transaksi', 'Tanggal', 'Pelanggan', 'Metode', 'Total', 'Status'], Pengguna: ['Nama', 'Email', 'Peran', 'Status'] };

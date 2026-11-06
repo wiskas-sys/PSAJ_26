@@ -35,27 +35,21 @@ const supabase = createClient(supabaseUrl, serviceKey, {
 
 const TARGET_USERS = [
   {
-    email: 'owner@dianmotor.co.id',
-    password: 'owner123',
-    fullName: 'Owner Utama Dian Motor',
+    email: 'ahmadsahal8@mail.com',
+    password: 'Dianmotor123#',
+    fullName: 'Ahmad Sahal',
     role: 'admin',
   },
   {
-    email: 'owner2@dianmotor.co.id',
-    password: 'owner123',
-    fullName: 'Co-Owner Dian Motor',
+    email: 'ahmadsahal8@gmail.com',
+    password: 'Dianmotor123#',
+    fullName: 'Ahmad Sahal',
     role: 'admin',
   },
   {
-    email: 'owner3@dianmotor.co.id',
-    password: 'owner123',
-    fullName: 'Supervisor Dian Motor',
-    role: 'admin',
-  },
-  {
-    email: 'kasir@dianmotor.co.id',
-    password: 'kasir123',
-    fullName: 'Kasir Shift Dian Motor',
+    email: 'dmotor80@gmail.com',
+    password: 'Dianmotor123#',
+    fullName: 'Kasir Dian Motor',
     role: 'kasir',
   },
 ];
