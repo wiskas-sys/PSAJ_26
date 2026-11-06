@@ -19,7 +19,69 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 
 const STATUS = ['Menunggu', 'Dikerjakan', 'Selesai'];
 const SERVICES_KEY = 'dian-motor-services';
-const emptyOrder = () => ({ id: '', customer: '', phone: '', plate: '', brand: '', complaint: '', job: '', serviceFee: 35000, status: 'Menunggu', progress: 0, eta: '—', parts: [] });
+
+const QUICK_SERVICE_PRESETS = [
+    { label: 'Ganti Oli (25 mnt)', job: 'Ganti Oli Mesin & Gardan', fee: 15000, duration: 25 },
+    { label: 'Tune-Up Rutin (40 mnt)', job: 'Servis Ringan & Tune-Up Rutin', fee: 35000, duration: 40 },
+    { label: 'Servis CVT Matic (50 mnt)', job: 'Servis CVT Matic & Pembersihan Pulley', fee: 45000, duration: 50 },
+    { label: 'Ganti Rem / Ban (30 mnt)', job: 'Ganti Kampas Rem & Cek Roda', fee: 25000, duration: 30 },
+    { label: 'Kelistrikan & Aki (35 mnt)', job: 'Pengecekan Kelistrikan & Aki', fee: 30000, duration: 35 },
+    { label: 'Turun Mesin (3 jam)', job: 'Turun Mesin & Perbaikan Komponen', fee: 150000, duration: 180 },
+];
+
+function getEstimatedDurationMinutes(jobText) {
+    const text = (jobText || '').toLowerCase();
+    if (/overhaul|turun mesin|skir klep|korter|seher/i.test(text)) return 180;
+    if (/cvt|gredek|roller|v-belt|vanbelt|pulley/i.test(text)) return 50;
+    if (/shock|kaki-kaki|bearing|laher|segitiga|komstir/i.test(text)) return 60;
+    if (/oli|tune up|tune-up|servis rutin|injeksi|karbu/i.test(text)) return 35;
+    if (/rem|kampas|ban|tubeless|rantai|gir/i.test(text)) return 30;
+    if (/kelistrikan|aki|accu|starter|lampu/i.test(text)) return 35;
+    return 45;
+}
+
+function calculateEtaString(startDate, durationMinutes) {
+    const start = startDate ? new Date(startDate) : new Date();
+    const finish = new Date(start.getTime() + (durationMinutes || 45) * 60 * 1000);
+    const hours = String(finish.getHours()).padStart(2, '0');
+    const minutes = String(finish.getMinutes()).padStart(2, '0');
+    return `${hours}.${minutes}`;
+}
+
+function calculateLiveProgress(order) {
+    if (order.status === 'Selesai') return 100;
+    if (order.status === 'Menunggu') return 10;
+
+    // Status 'Dikerjakan': dihitung otomatis berdasarkan pergerakan waktu riil
+    const duration = (order.durationMinutes || getEstimatedDurationMinutes(order.job)) * 60 * 1000;
+    const created = order.createdAt ? new Date(order.createdAt).getTime() : (order.startedAt ? new Date(order.startedAt).getTime() : Date.now() - (duration * 0.35));
+    const elapsed = Math.max(0, Date.now() - created);
+    const percent = Math.round((elapsed / duration) * 100);
+
+    // Di rentang 15% (mulai dikerjakan) hingga 95% (tahap akhir), menjadi 100% saat Selesai
+    return Math.min(95, Math.max(15, percent));
+}
+
+const emptyOrder = () => {
+    const duration = 40;
+    const now = new Date();
+    return {
+        id: '',
+        customer: '',
+        phone: '',
+        plate: '',
+        brand: '',
+        complaint: '',
+        job: '',
+        serviceFee: 35000,
+        status: 'Menunggu',
+        durationMinutes: duration,
+        createdAt: now.toISOString(),
+        eta: calculateEtaString(now, duration),
+        progress: 10,
+        parts: [],
+    };
+};
 
 function readServices() {
     try {
@@ -72,6 +134,13 @@ export default function Page() {
     const [editDraft, setEditDraft] = useState(() => emptyOrder());
     const [detailIdx, setDetailIdx] = useState(null);
     const [deleteIdx, setDeleteIdx] = useState(null);
+    const [, setTick] = useState(0);
+
+    // Timer interval 15 detik untuk auto-refresh progress pengerjaan riil
+    useEffect(() => {
+        const interval = setInterval(() => setTick(t => t + 1), 15000);
+        return () => clearInterval(interval);
+    }, []);
     useEffect(() => {
         setOrders(readServices());
         let live = true;
@@ -99,10 +168,21 @@ export default function Page() {
     async function saveCreate() {
         if (!draft.customer.trim() || !draft.job.trim())
             return toast.error('Pelanggan dan jenis servis wajib diisi.');
-        const service = { ...draft, id: nextServiceCode(todayISO(), readServices()) };
+        const duration = draft.durationMinutes || getEstimatedDurationMinutes(draft.job);
+        const createdAt = draft.createdAt || new Date().toISOString();
+        const eta = draft.eta && draft.eta !== '—' ? draft.eta : calculateEtaString(new Date(createdAt), duration);
+        const progress = draft.status === 'Selesai' ? 100 : (draft.status === 'Menunggu' ? 10 : 25);
+        const service = { 
+            ...draft, 
+            id: nextServiceCode(todayISO(), readServices()),
+            durationMinutes: duration,
+            createdAt,
+            eta,
+            progress,
+        };
         if (!await commitParts(service, [], service.parts)) return;
         persist([service, ...readServices()]);
-        toast.success('Servis baru berhasil dicatat.');
+        toast.success(`Servis dicatat! Estimasi selesai pukul ${eta} WIB.`);
         setCreateOpen(false);
         setDraft(emptyOrder());
     }
@@ -110,7 +190,8 @@ export default function Page() {
         const current = readServices();
         const target = current[editIdx];
         if (!target) { setEditIdx(null); return; }
-        const updated = { ...editDraft, id: target.id };
+        const progress = editDraft.status === 'Selesai' ? 100 : (editDraft.status === 'Menunggu' ? 10 : calculateLiveProgress(editDraft));
+        const updated = { ...editDraft, id: target.id, progress };
         if (!await commitParts(updated, target.parts, updated.parts)) return;
         persist(current.map((o, i) => i === editIdx ? updated : o));
         if (updated.status === 'Selesai') {
@@ -189,7 +270,8 @@ export default function Page() {
         const partsTotal = (o.parts || []).reduce((sum, p) => sum + (p.sellingPrice || 0) * (p.quantity || 1), 0);
         const fee = Number(o.serviceFee || 0);
         const totalBill = fee + partsTotal;
-        return (<div key={o.id} className="surface p-4 flex flex-col justify-between"><div><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] text-muted-foreground">{o.id}</p><h2 className="mt-1 text-[15px] font-bold">{o.job}</h2></div><span className={tag(o.status)}>{o.status.toUpperCase()}</span></div>{o.complaint && <p className="mt-2 text-xs italic text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">Keluhan: &ldquo;{o.complaint}&rdquo;</p>}<div className="mt-3 rounded-xl bg-muted p-3"><div className="flex justify-between"><span className="font-mono text-[11px] font-semibold">{o.plate}</span><small className="text-muted-foreground">{o.brand}</small></div><p className="mt-1 text-sm font-semibold">{o.customer}</p><small className="font-mono text-[10px] text-muted-foreground">{o.phone}</small></div><div className="mt-3 flex justify-between text-xs"><span className="text-muted-foreground">Estimasi selesai</span><strong className="font-mono">{o.eta} WIB</strong></div><div className="progress-track mt-2"><span style={{ width: `${o.progress}%` }}/></div>{(o.parts?.length ?? 0) > 0 && <p className="mt-2 flex flex-wrap gap-1">{o.parts.map(p => <span key={`${p.productId}-${p.productName}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.quantity}× {p.productName}</span>)}</p>}</div><div><div className="mt-4 flex items-center justify-between border-t border-border pt-2 text-xs"><span className="text-muted-foreground">Biaya Servis + Part:</span><strong className="text-sm font-black text-primary">{rupiah(totalBill)}</strong></div>{isOwner ? (
+        const liveProgress = calculateLiveProgress(o);
+        return (<div key={o.id} className="surface p-4 flex flex-col justify-between"><div><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[10px] text-muted-foreground">{o.id}</p><h2 className="mt-1 text-[15px] font-bold">{o.job}</h2></div><span className={tag(o.status)}>{o.status.toUpperCase()}</span></div>{o.complaint && <p className="mt-2 text-xs italic text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20">Keluhan: &ldquo;{o.complaint}&rdquo;</p>}<div className="mt-3 rounded-xl bg-muted p-3"><div className="flex justify-between"><span className="font-mono text-[11px] font-semibold">{o.plate}</span><small className="text-muted-foreground">{o.brand}</small></div><p className="mt-1 text-sm font-semibold">{o.customer}</p><small className="font-mono text-[10px] text-muted-foreground">{o.phone}</small></div><div className="mt-3 flex items-center justify-between text-xs"><span className="text-muted-foreground">Progres: <strong className="text-foreground">{liveProgress}%</strong></span><span className="text-muted-foreground">Estimasi: <strong className="font-mono">{o.eta} WIB</strong></span></div><div className="progress-track mt-2"><span style={{ width: `${liveProgress}%` }}/></div>{(o.parts?.length ?? 0) > 0 && <p className="mt-2 flex flex-wrap gap-1">{o.parts.map(p => <span key={`${p.productId}-${p.productName}`} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.quantity}× {p.productName}</span>)}</p>}</div><div><div className="mt-4 flex items-center justify-between border-t border-border pt-2 text-xs"><span className="text-muted-foreground">Biaya Servis + Part:</span><strong className="text-sm font-black text-primary">{rupiah(totalBill)}</strong></div>{isOwner ? (
             <div className="mt-3 flex items-center justify-end gap-2">
                 <Button variant="outline" size="sm" className="h-8" onClick={() => setDetailIdx(i)}>
                     Lihat Detail Servis
@@ -198,24 +280,96 @@ export default function Page() {
         ) : (
             <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8" onClick={() => sendToKasir(o)}><ShoppingCart data-icon="inline-start" className="size-3.5 mr-1"/>Kirim Tagihan ke Kasir</Button>
-                <Button variant={o.status === 'Selesai' ? 'outline' : 'default'} size="sm" className="h-8" onClick={() => { setEditIdx(i); setEditDraft({ ...o }); }}>{o.status === 'Selesai' ? 'Detail' : 'Perbarui'}</Button>
+                <Button variant={o.status === 'Selesai' ? 'outline' : 'default'} size="sm" className="h-8" onClick={() => { setEditIdx(i); setEditDraft({ ...o, progress: liveProgress }); }}>{o.status === 'Selesai' ? 'Detail' : 'Perbarui'}</Button>
                 <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-400" onClick={() => setDeleteIdx(i)}><Trash2 data-icon="inline-start"/>Batal</Button>
             </div>
         )}</div></div>);
     })}</section>
-    <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) setDraft(emptyOrder()); }}><DialogContent><DialogHeader><DialogTitle>Catat Servis Baru</DialogTitle><DialogDescription>Masukkan detail kendaraan dan pekerjaan.</DialogDescription></DialogHeader><FieldGroup>
+    <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) setDraft(emptyOrder()); }}><DialogContent className="sm:max-w-xl"><DialogHeader><DialogTitle>Catat Servis Baru</DialogTitle><DialogDescription>Detail kendaraan dan estimasi durasi pengerjaan otomatis.</DialogDescription></DialogHeader><FieldGroup>
         <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Nama Pelanggan</FieldLabel><Input value={draft.customer} onChange={e => setDraft(d => ({ ...d, customer: e.target.value }))} placeholder="Nama pelanggan"/></Field><Field><FieldLabel>Nomor Telepon</FieldLabel><Input value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} placeholder="08xx-xxxx-xxxx"/></Field></div>
         <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Plat Nomor</FieldLabel><Input value={draft.plate} onChange={e => setDraft(d => ({ ...d, plate: e.target.value }))} placeholder="B 1234 XYZ"/></Field><Field><FieldLabel>Merk &amp; Tipe</FieldLabel><Input value={draft.brand} onChange={e => setDraft(d => ({ ...d, brand: e.target.value }))} placeholder="Honda Vario 125"/></Field></div>
-        <Field><FieldLabel>Jenis Servis</FieldLabel><Input value={draft.job} onChange={e => setDraft(d => ({ ...d, job: e.target.value }))} placeholder="Ganti oli, tune up, dsb."/></Field>
+        <Field>
+            <div className="flex items-center justify-between mb-1.5">
+                <FieldLabel>Jenis Servis</FieldLabel>
+                <span className="text-[11px] text-muted-foreground">Template cepat:</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {QUICK_SERVICE_PRESETS.map((preset) => (
+                    <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                            const dur = preset.duration;
+                            setDraft(d => ({
+                                ...d,
+                                job: preset.job,
+                                serviceFee: preset.fee,
+                                durationMinutes: dur,
+                                eta: calculateEtaString(new Date(), dur),
+                            }));
+                        }}
+                        className="rounded-lg border border-border bg-muted/60 px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary cursor-pointer"
+                    >
+                        {preset.label}
+                    </button>
+                ))}
+            </div>
+            <Input 
+                value={draft.job} 
+                onChange={e => {
+                    const val = e.target.value;
+                    const dur = getEstimatedDurationMinutes(val);
+                    setDraft(d => ({ 
+                        ...d, 
+                        job: val, 
+                        durationMinutes: dur, 
+                        eta: calculateEtaString(new Date(), dur) 
+                    }));
+                }} 
+                placeholder="Ganti oli, tune up, servis CVT, dsb."
+            />
+        </Field>
         <Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={draft.complaint} onChange={e => setDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Contoh: Rem bunyi srek, mesin brebet, tarikan gredek"/></Field>
-        <div className="grid gap-4 sm:grid-cols-3"><Field><FieldLabel>Biaya Servis dari Tukang (Rp)</FieldLabel><Input value={formatThousands(draft.serviceFee)} onChange={e => setDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field><Field><FieldLabel>Status</FieldLabel><Select value={draft.status} onValueChange={v => setDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field><Field><FieldLabel>Estimasi Selesai (jam)</FieldLabel><Input value={draft.eta} onChange={e => setDraft(d => ({ ...d, eta: e.target.value }))} placeholder="17.00"/></Field></div>
+        <div className="grid gap-4 sm:grid-cols-3">
+            <Field><FieldLabel>Biaya Servis (Rp)</FieldLabel><Input value={formatThousands(draft.serviceFee)} onChange={e => setDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field>
+            <Field><FieldLabel>Status Awal</FieldLabel><Select value={draft.status} onValueChange={v => setDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+            <Field>
+                <FieldLabel className="flex items-center justify-between">
+                    <span>Estimasi Selesai</span>
+                    <span className="font-mono text-[10px] text-emerald-500 font-bold">Otomatis Riil</span>
+                </FieldLabel>
+                <Input value={draft.eta} onChange={e => setDraft(d => ({ ...d, eta: e.target.value }))} placeholder="14.30" className="font-mono font-bold"/>
+            </Field>
+        </div>
         <PartsEditor parts={draft.parts} catalog={catalog} onChange={parts => setDraft(d => ({ ...d, parts }))}/>
     </FieldGroup><DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)}>Batal</Button><Button onClick={saveCreate}>Simpan Servis</Button></DialogFooter></DialogContent></Dialog>
-    {editIdx !== null && <Dialog open onOpenChange={o => { if (!o) setEditIdx(null); }}><DialogContent><DialogHeader><DialogTitle>Perbarui Servis</DialogTitle><DialogDescription>{editDraft.id} · {editDraft.job}</DialogDescription></DialogHeader><FieldGroup>
-        <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={editDraft.complaint || ''} onChange={e => setEditDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Keluhan..."/></Field><Field><FieldLabel>Biaya Servis dari Tukang (Rp)</FieldLabel><Input value={formatThousands(editDraft.serviceFee)} onChange={e => setEditDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field></div>
-        <Field><FieldLabel>Status</FieldLabel><Select value={editDraft.status} onValueChange={v => setEditDraft(d => ({ ...d, status: v }))}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
-        <Field><FieldLabel>Progress ({editDraft.progress}%)</FieldLabel><div className="flex items-center gap-2"><input type="range" min="0" max="100" step="5" value={editDraft.progress} onChange={e => setEditDraft(d => ({ ...d, progress: Number(e.target.value) }))} className="h-2 flex-1 accent-[#dc2626]"/><Input type="number" min="0" max="100" value={editDraft.progress} onChange={e => setEditDraft(d => ({ ...d, progress: Number(e.target.value) }))} className="h-9 w-20 text-center"/></div></Field>
-        <Field><FieldLabel>Estimasi Selesai</FieldLabel><Input value={editDraft.eta} onChange={e => setEditDraft(d => ({ ...d, eta: e.target.value }))}/></Field>
+    {editIdx !== null && <Dialog open onOpenChange={o => { if (!o) setEditIdx(null); }}><DialogContent className="sm:max-w-xl"><DialogHeader><DialogTitle>Perbarui Servis</DialogTitle><DialogDescription>{editDraft.id} · {editDraft.job}</DialogDescription></DialogHeader><FieldGroup>
+        <div className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel>Keluhan Pelanggan</FieldLabel><Input value={editDraft.complaint || ''} onChange={e => setEditDraft(d => ({ ...d, complaint: e.target.value }))} placeholder="Keluhan..."/></Field><Field><FieldLabel>Biaya Servis (Rp)</FieldLabel><Input value={formatThousands(editDraft.serviceFee)} onChange={e => setEditDraft(d => ({ ...d, serviceFee: parseThousands(e.target.value) }))} placeholder="35.000" className="font-semibold"/></Field></div>
+        <div className="grid gap-4 sm:grid-cols-2">
+            <Field>
+                <FieldLabel>Status Pengerjaan</FieldLabel>
+                <Select value={editDraft.status} onValueChange={v => setEditDraft(d => ({ ...d, status: v, progress: v === 'Selesai' ? 100 : (v === 'Menunggu' ? 10 : calculateLiveProgress({ ...d, status: v })) }))}>
+                    <SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger>
+                    <SelectContent><SelectGroup>{STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectGroup></SelectContent>
+                </Select>
+            </Field>
+            <Field>
+                <FieldLabel className="flex items-center justify-between">
+                    <span>Estimasi Selesai</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">WIB</span>
+                </FieldLabel>
+                <Input value={editDraft.eta} onChange={e => setEditDraft(d => ({ ...d, eta: e.target.value }))} className="font-mono font-bold"/>
+            </Field>
+        </div>
+        <Field>
+            <div className="flex items-center justify-between mb-1">
+                <FieldLabel>Progres Pengerjaan</FieldLabel>
+                <span className="text-xs font-bold text-primary">
+                    {editDraft.status === 'Selesai' ? '100% (Selesai)' : `${calculateLiveProgress(editDraft)}% (Otomatis Waktu Riil)`}
+                </span>
+            </div>
+            <div className="progress-track"><span style={{ width: `${editDraft.status === 'Selesai' ? 100 : calculateLiveProgress(editDraft)}%` }}/></div>
+        </Field>
         <PartsEditor parts={editDraft.parts ?? []} catalog={catalog} onChange={parts => setEditDraft(d => ({ ...d, parts }))}/>
         {(editDraft.parts?.length ?? 0) > 0 && <p className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">Menambah quantity akan memotong stok lagi; mengurangi atau menghapus mengembalikan stok sebagai koreksi. Mengubah status dan progress tidak menyentuh stok.</p>}
     </FieldGroup><DialogFooter><Button variant="outline" onClick={() => setEditIdx(null)}>Batal</Button><Button onClick={saveEdit}>Simpan Perubahan</Button></DialogFooter></DialogContent></Dialog>}

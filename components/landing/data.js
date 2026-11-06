@@ -63,7 +63,7 @@ export const contactImage = {
 export const heroSpecs = [
   { label: "Pengalaman", value: "13 Tahun" },
   { label: "Spesialisasi", value: "Bebek, Matic, & Sport" },
-  { label: "Jam Operasional", value: "08.00 - 17.00 WIB" },
+  { label: "Jam Operasional", value: "08.30 – 22.00 WIB (Buka Setiap Hari)" },
   { label: "Sistem Inventori", value: "1.000+ Suku Cadang Terdata" },
   { label: "Konsultasi Online", value: "Tanya Jawab 24 Jam (Jawa / Ngapak / ID)" },
 ];
@@ -242,7 +242,7 @@ export const faqs = [
 ];
 
 export const businessHours = [
-  { day: "Senin – Jumat", time: "08.00 – 17.00 WIB" },
-  { day: "Sabtu", time: "08.00 – 15.30 WIB" },
-  { day: "Minggu & Hari Libur", time: "Konsultasi Online & WA Tetap Aktif" },
+  { day: "Setiap Hari (Senin – Minggu)", time: "08.30 – 22.00 WIB" },
+  { day: "Layanan Servis & Suku Cadang", time: "Siap Setiap Hari" },
+  { day: "Konsultasi Online & WA", time: "Aktif 24 Jam" },
 ];
