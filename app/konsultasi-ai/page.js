@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   ShieldCheck,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
@@ -172,6 +173,30 @@ Ketik keluhanmu di bawah atau klik salah satu topik cepat!`,
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const hasAutoFired = useRef(false);
+  const chipsRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    if (!chipsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = chipsRef.current;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  const scrollChips = (dir) => {
+    if (!chipsRef.current) return;
+    chipsRef.current.scrollBy({
+      left: dir === "left" ? -220 : 220,
+      behavior: "smooth",
+    });
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -319,24 +344,58 @@ Ketik keluhanmu di bawah atau klik salah satu topik cepat!`,
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Suggestion Strip (Horizontal Scrollable) */}
-        <div className="border-t border-border/60 bg-muted/20 px-4 py-2 sm:px-6">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-            <span className="text-[11px] font-semibold text-muted-foreground shrink-0 flex items-center gap-1">
+        {/* Quick Suggestion Strip (Horizontal Scrollable with wheel & arrow navigation) */}
+        <div className="relative border-t border-border/60 bg-muted/20 px-3 py-2 sm:px-6">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground shrink-0 flex items-center gap-1 pr-1 select-none">
               <Sparkles className="size-3 text-primary" />
               Contoh:
             </span>
-            {QUICK_CHIPS.map((chip, idx) => (
+
+            {canScrollLeft && (
               <button
-                key={idx}
                 type="button"
-                disabled={loading}
-                onClick={() => handleSend(chip.query)}
-                className="shrink-0 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-95 disabled:opacity-50 cursor-pointer"
+                onClick={() => scrollChips("left")}
+                aria-label="Geser ke kiri"
+                className="grid size-6 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-xs cursor-pointer transition hover:bg-muted"
               >
-                {chip.label}
+                <ChevronLeft className="size-3.5" />
               </button>
-            ))}
+            )}
+
+            <div
+              ref={chipsRef}
+              onScroll={checkScroll}
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+              className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-border pb-1 pt-0.5 scroll-smooth touch-pan-x"
+            >
+              {QUICK_CHIPS.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleSend(chip.query)}
+                  className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs whitespace-nowrap"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {canScrollRight && (
+              <button
+                type="button"
+                onClick={() => scrollChips("right")}
+                aria-label="Geser ke kanan"
+                className="grid size-6 shrink-0 place-items-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-xs cursor-pointer transition hover:bg-muted"
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
