@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Sparkles, X, Send, Loader2 } from "lucide-react";
 
 const QUICK_PROMPTS = [
-  "oli?",
-  "oli mn?",
-  "stok sisa brp?",
-  "busi ad ga?",
+  "stok mana yg masih ada?",
   "brg apa yg abis?",
+  "stok menipis apa aja?",
+  "rekap stok",
+  "oli mn?",
+  "busi ad ga?",
 ];
 
 export default function AiChatWidget({ userRole = 'kasir' }) {
