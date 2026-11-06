@@ -25,20 +25,63 @@ const DOTS = [
   { id: 8, x: 200, y: 200 },
 ];
 
-// Pola Keamanan Rahasia yang Diizinkan:
-// 1. Pola Huruf M (Motor): 6 -> 3 -> 0 -> 4 -> 2 -> 5 -> 8 (Rekomendasi Utama)
-// 2. Pola Huruf L: 0 -> 3 -> 6 -> 7 -> 8
-// 3. Pola Huruf Z: 0 -> 1 -> 2 -> 4 -> 6 -> 7 -> 8
-// 4. Pola Sudut: 0 -> 1 -> 2 -> 5 -> 8
-// 5. Pola Tangga: 0 -> 1 -> 4 -> 7 -> 8
-// 6. Pola Kotak (Dian): 0 -> 1 -> 2 -> 5 -> 8 -> 7 -> 6 -> 3
+// Titik tengah yang otomatis terhubung jika garis lurus ditarik melintasinya
+const MID_DOTS = {
+  "0-2": 1, "2-0": 1,
+  "3-5": 4, "5-3": 4,
+  "6-8": 7, "8-6": 7,
+  "0-6": 3, "6-0": 3,
+  "1-7": 4, "7-1": 4,
+  "2-8": 5, "8-2": 5,
+  "0-8": 4, "8-0": 4,
+  "2-6": 4, "6-2": 4,
+};
+
+// Pola Keamanan Rahasia yang Diizinkan (Mendukung segala variasi tarikan garis):
 const VALID_PATTERNS = [
+  // 1. Pola Huruf M (Mulai dari Kiri Bawah: 6 -> 3 -> 0 -> 4 -> 2 -> 5 -> 8)
   "6,3,0,4,2,5,8",
+  "6,0,4,2,8",
+  "6,3,0,4,8",
+  "6,0,4,8",
+  "6,3,0,4,2,8",
+
+  // 2. Pola Huruf M (Mulai dari Kiri Atas: 0 -> 3 -> 6 -> 4 -> 2 -> 5 -> 8)
+  "0,3,6,4,2,5,8",
+  "0,6,4,2,8",
+  "0,3,6,4,8",
+  "0,6,4,8",
+  "0,3,6,4,2,8",
+  "0,6,4,2,5,8",
+
+  // 3. Pola Huruf M (Terbalik dari Kanan: 8 -> 5 -> 2 -> 4 -> 0 -> 3 -> 6 atau 2 -> ...)
+  "8,5,2,4,0,3,6",
+  "8,2,4,0,6",
+  "8,5,2,4,6,3,0",
+  "2,5,8,4,0,3,6",
+  "2,5,8,4,6,3,0",
+  "2,8,4,0,6",
+
+  // 4. Pola Huruf L (Standar & Cepat)
   "0,3,6,7,8",
+  "0,6,7,8",
+  "0,3,6,8",
+  "0,6,8",
+  "8,7,6,3,0",
+  "8,6,0",
+
+  // 5. Pola Huruf Z (Standar & Cepat)
   "0,1,2,4,6,7,8",
+  "0,2,4,6,8",
+  "0,1,2,4,6,8",
+  "0,2,4,6,7,8",
+
+  // 6. Pola Sudut & Kotak
   "0,1,2,5,8",
+  "0,2,5,8",
   "0,1,4,7,8",
   "0,1,2,5,8,7,6,3",
+  "0,2,8,6",
 ];
 
 export function StaffGateModal({ open, onClose }) {
@@ -47,6 +90,7 @@ export function StaffGateModal({ open, onClose }) {
   const [pinError, setPinError] = useState("");
 
   const [pattern, setPattern] = useState([]);
+  const patternRef = useRef([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [cursorPos, setCursorPos] = useState(null);
   const [patternError, setPatternError] = useState("");
@@ -61,6 +105,7 @@ export function StaffGateModal({ open, onClose }) {
       setPin("");
       setPinError("");
       setPattern([]);
+      patternRef.current = [];
       setPatternError("");
     }
   }, [open]);
@@ -108,12 +153,23 @@ export function StaffGateModal({ open, onClose }) {
     }
   }
 
-  // Handle Pattern Lock Touch & Drag
+  // Handle Pattern Lock Touch & Pointer
   function getSvgPoint(e) {
     if (!svgRef.current) return null;
     const rect = svgRef.current.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    }
+
+    if (typeof clientX !== "number" || typeof clientY !== "number") return null;
+
     return {
       x: clientX - rect.left,
       y: clientY - rect.top,
@@ -124,7 +180,7 @@ export function StaffGateModal({ open, onClose }) {
     if (!pt) return null;
     for (const dot of DOTS) {
       const dist = Math.hypot(dot.x - pt.x, dot.y - pt.y);
-      if (dist <= 26) {
+      if (dist <= 30) {
         return dot.id;
       }
     }
@@ -133,6 +189,11 @@ export function StaffGateModal({ open, onClose }) {
 
   function handlePointerDown(e) {
     e.preventDefault();
+    try {
+      if (e.currentTarget && e.pointerId !== undefined) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
+    } catch {}
     setPatternError("");
     const pt = getSvgPoint(e);
     const hit = checkHitDot(pt);
@@ -140,8 +201,10 @@ export function StaffGateModal({ open, onClose }) {
     setCursorPos(pt);
     if (hit !== null) {
       setPattern([hit]);
+      patternRef.current = [hit];
     } else {
       setPattern([]);
+      patternRef.current = [];
     }
   }
 
@@ -149,10 +212,22 @@ export function StaffGateModal({ open, onClose }) {
     if (!isDrawing) return;
     e.preventDefault();
     const pt = getSvgPoint(e);
+    if (!pt) return;
     setCursorPos(pt);
     const hit = checkHitDot(pt);
-    if (hit !== null && !pattern.includes(hit)) {
-      setPattern((prev) => [...prev, hit]);
+    if (hit !== null && !patternRef.current.includes(hit)) {
+      const prev = patternRef.current;
+      const next = [...prev];
+      if (prev.length > 0) {
+        const last = prev[prev.length - 1];
+        const mid = MID_DOTS[`${last}-${hit}`];
+        if (mid !== undefined && !prev.includes(mid)) {
+          next.push(mid);
+        }
+      }
+      next.push(hit);
+      patternRef.current = next;
+      setPattern(next);
     }
   }
 
@@ -161,19 +236,21 @@ export function StaffGateModal({ open, onClose }) {
     setIsDrawing(false);
     setCursorPos(null);
 
-    if (pattern.length < 4) {
-      if (pattern.length > 0) {
+    const currentPattern = patternRef.current;
+    if (currentPattern.length < 4) {
+      if (currentPattern.length > 0) {
         setPatternError("Pola terlalu pendek (minimal 4 titik).");
         setShake(true);
         setTimeout(() => {
           setPattern([]);
+          patternRef.current = [];
           setShake(false);
         }, 600);
       }
       return;
     }
 
-    const key = pattern.join(",");
+    const key = currentPattern.join(",");
     if (VALID_PATTERNS.includes(key)) {
       setStep(3);
       try {
@@ -187,10 +264,27 @@ export function StaffGateModal({ open, onClose }) {
       setPatternError("Pola keamanan tidak cocok. Silakan coba lagi.");
       setTimeout(() => {
         setPattern([]);
+        patternRef.current = [];
         setShake(false);
       }, 700);
     }
   }
+
+  // Pengaman window bila gesture dilepas di luar area SVG
+  useEffect(() => {
+    if (!isDrawing) return;
+    function onEnd() {
+      handlePointerUp();
+    }
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("touchend", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    return () => {
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+  }, [isDrawing]);
 
   if (!open) return null;
 
@@ -328,13 +422,12 @@ export function StaffGateModal({ open, onClose }) {
                   ref={svgRef}
                   width="240"
                   height="240"
-                  className="cursor-crosshair overflow-visible"
+                  style={{ touchAction: "none" }}
+                  className="cursor-crosshair overflow-visible touch-none select-none"
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
-                  onTouchStart={handlePointerDown}
-                  onTouchMove={handlePointerMove}
-                  onTouchEnd={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                 >
                   {/* Garis yang sudah terhubung */}
                   {pattern.map((dotId, idx) => {
