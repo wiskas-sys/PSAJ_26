@@ -4,8 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Lock, ShieldCheck, KeyRound, Grid3X3, ArrowLeft, X, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CORRECT_PIN = "260526"; // PIN PSAJ 26
-const ALTERNATE_PIN = "123456";
+// Daftar PIN Rahasia Staf & Manajemen Dian Motor
+const VALID_PINS = [
+  "260880", // Rekomendasi Utama: PSAJ 26 + Dian Motor 80 (dmotor80)
+  "260526", // Alternatif: PSAJ 26
+  "159067", // Alternatif: 6 digit awal Rekening BCA Diyan Purwanti
+  "123456", // Cadangan darurat
+];
 
 // Definisi titik grid 3x3 (Ukuran 240x240 px)
 const DOTS = [
@@ -20,15 +25,20 @@ const DOTS = [
   { id: 8, x: 200, y: 200 },
 ];
 
-// Pola yang sah:
-// 1. Huruf L: 0 -> 3 -> 6 -> 7 -> 8
-// 2. Huruf L terbalik: 0 -> 1 -> 2 -> 5 -> 8
-// 3. Pola Z: 0 -> 1 -> 2 -> 4 -> 6 -> 7 -> 8
+// Pola Keamanan Rahasia yang Diizinkan:
+// 1. Pola Huruf M (Motor): 6 -> 3 -> 0 -> 4 -> 2 -> 5 -> 8 (Rekomendasi Utama)
+// 2. Pola Huruf L: 0 -> 3 -> 6 -> 7 -> 8
+// 3. Pola Huruf Z: 0 -> 1 -> 2 -> 4 -> 6 -> 7 -> 8
+// 4. Pola Sudut: 0 -> 1 -> 2 -> 5 -> 8
+// 5. Pola Tangga: 0 -> 1 -> 4 -> 7 -> 8
+// 6. Pola Kotak (Dian): 0 -> 1 -> 2 -> 5 -> 8 -> 7 -> 6 -> 3
 const VALID_PATTERNS = [
+  "6,3,0,4,2,5,8",
   "0,3,6,7,8",
-  "0,1,2,5,8",
   "0,1,2,4,6,7,8",
+  "0,1,2,5,8",
   "0,1,4,7,8",
+  "0,1,2,5,8,7,6,3",
 ];
 
 export function StaffGateModal({ open, onClose }) {
@@ -83,7 +93,7 @@ export function StaffGateModal({ open, onClose }) {
     setPinError("");
 
     if (nextPin.length === 6) {
-      if (nextPin === CORRECT_PIN || nextPin === ALTERNATE_PIN) {
+      if (VALID_PINS.includes(nextPin)) {
         setTimeout(() => {
           setStep(2);
         }, 250);
@@ -283,9 +293,10 @@ export function StaffGateModal({ open, onClose }) {
               </button>
             </div>
 
-            <p className="mt-4 text-center font-mono text-[10px] text-muted-foreground">
-              PIN Default Staf: <span className="font-bold text-foreground">260526</span>
-            </p>
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground/70">
+              <Lock className="size-3 text-muted-foreground/50" />
+              <span>Akses terproteksi otorisasi staf &amp; manajemen bengkel</span>
+            </div>
           </div>
         )}
 
@@ -397,9 +408,10 @@ export function StaffGateModal({ open, onClose }) {
                   <span>{patternError}</span>
                 </div>
               ) : (
-                <p className="mt-3 text-[11px] text-muted-foreground">
-                  Tarik garis membentuk huruf <strong className="text-foreground">L</strong> (pojok kiri atas ke bawah lalu kanan)
-                </p>
+                <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/70">
+                  <ShieldCheck className="size-3.5 text-muted-foreground/50" />
+                  <span>Hubungkan minimal 4 titik pola verifikasi</span>
+                </div>
               )}
             </div>
 
