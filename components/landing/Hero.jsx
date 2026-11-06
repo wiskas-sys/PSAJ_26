@@ -107,10 +107,10 @@ export function Hero() {
               {heroSpecs.map((spec) => (
                 <div
                   key={spec.label}
-                  className="flex items-baseline justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                  className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4 py-2.5 first:pt-0 last:pb-0"
                 >
                   <dt className="text-xs sm:text-sm text-muted-foreground">{spec.label}</dt>
-                  <dd className="text-right text-xs sm:text-sm font-semibold text-foreground">
+                  <dd className="sm:text-right text-xs sm:text-sm font-semibold text-foreground">
                     {spec.value}
                   </dd>
                 </div>

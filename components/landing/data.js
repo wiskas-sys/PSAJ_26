@@ -6,15 +6,15 @@ export const company = {
   name: "Dian Motor",
   tagline: "Bengkel motor terpercaya di Bumiayu dengan sistem inventori transparan dan estimasi biaya di muka.",
   address:
-    "Jl. Ps. Wage, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273",
+    "Jl. Ps. Wage No. 19, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273",
   phoneDisplay: "+62 823-1388-9969",
   whatsapp: "6282313889969",
   email: "dmotor80@gmail.com",
-  mapsQuery: "Jl. Ps. Wage, Jatisawit, Bumiayu, Brebes",
+  mapsQuery: "DIAN MOTOR Bumiayu, Jl. Ps. Wage, Brebes",
   mapsEmbed:
-    "https://maps.google.com/maps?q=Jl.%20Ps.%20Wage%2C%20Jatisawit%2C%20Bumiayu%2C%20Brebes&t=&z=16&ie=UTF8&iwloc=&output=embed",
+    "https://maps.google.com/maps?q=DIAN+MOTOR,+Jl.+Ps.+Wage,+Krajan,+Jatisawit,+Kec.+Bumiayu,+Kabupaten+Brebes,+Jawa+Tengah+52273&t=&z=17&ie=UTF8&iwloc=&output=embed",
   mapsLink:
-    "https://maps.google.com/?q=Jl.+Ps.+Wage,+Jatisawit,+Bumiayu,+Brebes",
+    "https://www.google.com/maps/place/DIAN+MOTOR/@-7.2603516,109.006605,17z",
 };
 
 export const whatsappLink = (message = "") =>
@@ -65,7 +65,7 @@ export const heroSpecs = [
   { label: "Spesialisasi", value: "Bebek, Matic, & Sport" },
   { label: "Jam Operasional", value: "08.30 – 22.00 WIB (Buka Setiap Hari)" },
   { label: "Sistem Inventori", value: "1.000+ Suku Cadang Terdata" },
-  { label: "Konsultasi Online", value: "Tanya Jawab 24 Jam (Jawa / Ngapak / ID)" },
+  { label: "Konsultasi Online", value: "Aktif 24 Jam Nonstop" },
 ];
 
 export const services = [
@@ -242,7 +242,7 @@ export const faqs = [
 ];
 
 export const businessHours = [
-  { day: "Setiap Hari (Senin – Minggu)", time: "08.30 – 22.00 WIB" },
+  { day: "Buka Setiap Hari (Senin – Minggu)", time: "08.30 – 22.00 WIB" },
   { day: "Layanan Servis & Suku Cadang", time: "Siap Setiap Hari" },
   { day: "Konsultasi Online & WA", time: "Aktif 24 Jam" },
 ];

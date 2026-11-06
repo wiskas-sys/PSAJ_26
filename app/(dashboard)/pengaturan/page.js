@@ -24,7 +24,7 @@ const DEFAULT_PROFILE = {
     nama: 'DIAN MOTOR',
     telepon: '+62 823-1388-9969',
     jamOperasional: 'Setiap Hari, 08.30 – 22.00 WIB',
-    alamat: 'Jl. Ps. Wage, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273',
+    alamat: 'Jl. Ps. Wage No. 19, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273',
     rekening: 'BCA: 0461782991 a.n. DIAN MOTOR',
 };
 

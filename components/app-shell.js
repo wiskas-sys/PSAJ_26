@@ -30,7 +30,7 @@ const kasirNav = [
     ['Dashboard', '/dashboard', LayoutDashboard],
     ['Kasir / Terminal POS', '/kasir', ShoppingCart],
     ['Penjualan & Transaksi', '/transaksi', ReceiptText],
-    ['Cek Stok & Rak', '/stok', Boxes],
+    ['Cek Stok & Rak', '/stok', Boxes, [['Barang Masuk', '/barang-masuk']]],
     ['Servis & Perbaikan', '/servis', Wrench],
 ];
 
@@ -51,6 +51,7 @@ const kasirMobileNav = [
     ['Kasir POS', '/kasir'],
     ['Transaksi', '/transaksi'],
     ['Cek Stok', '/stok'],
+    ['Barang Masuk', '/barang-masuk'],
     ['Servis', '/servis'],
 ];
 

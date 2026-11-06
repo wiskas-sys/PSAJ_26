@@ -68,7 +68,10 @@ export function Footer() {
               <address className="mt-4 space-y-2.5 text-sm not-italic text-muted-foreground">
                 <p className="flex items-start gap-2">
                   <MapPin className="size-4 text-primary shrink-0 mt-0.5" />
-                  <span>{company.address}</span>
+                  <span>
+                    <strong className="block text-foreground">DIAN MOTOR</strong>
+                    {company.address}
+                  </span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="size-4 text-primary shrink-0" />
