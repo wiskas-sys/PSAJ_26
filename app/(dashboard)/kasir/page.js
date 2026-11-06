@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { rupiah, todayISO } from '@/lib/demo-data';
 import { formatThousands, parseThousands } from '@/lib/money-format';
 import { checkoutStockSale, listStockCustomers, listStockProducts } from '@/lib/supabase/stock-products';
+import { recordMovement } from '@/lib/stock-store';
 import { createClient } from '@/lib/supabase/client';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -120,6 +121,24 @@ export default function PosPage() {
                 items: stockItems.map(i => ({ product_id: i.product.id, quantity: i.qty })),
                 discount, method, paid: gatewayOrderId ? total : paid,
                 customerId: customer === 'umum' ? null : customer });
+
+                // Sinkronkan ke riwayat mutasi agar langsung muncul di Riwayat Barang Keluar akun Owner
+                try {
+                    for (const item of stockItems) {
+                        recordMovement({
+                            productId: item.product.id,
+                            type: 'OUT',
+                            kind: 'PEMAKAIAN',
+                            quantity: item.qty,
+                            reference: code,
+                            party: customerName || 'Pelanggan Kasir',
+                            notes: `Penjualan kasir (${method})`,
+                            date: todayISO(),
+                        });
+                    }
+                } catch (localErr) {
+                    console.warn('Gagal mencatat mutasi lokal:', localErr);
+                }
             } else {
                 await fetch('/api/servis/bayar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceId: code, customer: customerName, job: cart.map(i => i.product.name).join(', '), totalBill: total, method, paidAmount: gatewayOrderId ? total : paid, changeAmount: change }) });
             }

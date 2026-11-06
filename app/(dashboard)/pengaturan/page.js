@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CreditCard, Server, ShieldCheck } from 'lucide-react';
+import { Check, CreditCard, Save, Server, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,19 +18,71 @@ function Switch({ on, onChange }) {
 
 const tabCls = 'h-9 rounded-lg px-3.5 text-xs font-semibold data-active:bg-primary data-active:text-white data-active:shadow-none dark:data-active:bg-primary';
 
+const SETTINGS_STORAGE_KEY = 'dian_motor_system_settings';
+
+const DEFAULT_PROFILE = {
+    nama: 'DIAN MOTOR',
+    telepon: '+62 823-1388-9969',
+    jamOperasional: 'Setiap Hari, 08.30 – 22.00 WIB',
+    alamat: 'Jl. Ps. Wage, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273',
+    rekening: 'BCA: 0461782991 a.n. DIAN MOTOR',
+};
+
+const DEFAULT_PREFS = { 
+    notifStok: true, 
+    waReceipt: true, 
+    auditLog: true, 
+    cloudSync: true 
+};
+
+const DEFAULT_PAY_METHODS = { 
+    'Kas Tunai POS (Cash Fisik)': true, 
+    'QRIS Dinamis (Standar Nasional)': true, 
+    'Transfer Bank BCA (0461782991 a.n. DIAN MOTOR)': true 
+};
+
 export default function Page() {
-    const [prefs, setPrefs] = useState({ 
-        notifStok: true, 
-        waReceipt: true, 
-        auditLog: true, 
-        cloudSync: true 
-    });
-    const [payMethods, setPayMethods] = useState({ 
-        'Kas Tunai POS (Cash Fisik)': true, 
-        'QRIS Dinamis (Standar Nasional)': true, 
-        'Transfer Bank BCA (0461782991 a.n. DIAN MOTOR)': true 
-    });
-    const set = (k) => () => setPrefs(p => ({ ...p, [k]: !p[k] }));
+    const [profile, setProfile] = useState(DEFAULT_PROFILE);
+    const [prefs, setPrefs] = useState(DEFAULT_PREFS);
+    const [payMethods, setPayMethods] = useState(DEFAULT_PAY_METHODS);
+    const [saved, setSaved] = useState(false);
+
+    // Muat pengaturan tersimpan dari localStorage saat halaman dibuka
+    useEffect(() => {
+        try {
+            const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed.profile) setProfile(p => ({ ...p, ...parsed.profile }));
+                if (parsed.prefs) setPrefs(p => ({ ...p, ...parsed.prefs }));
+                if (parsed.payMethods) setPayMethods(p => ({ ...p, ...parsed.payMethods }));
+            }
+        } catch (err) {
+            console.error('Gagal memuat pengaturan tersimpan:', err);
+        }
+    }, []);
+
+    const saveSettings = () => {
+        try {
+            const payload = {
+                profile,
+                prefs,
+                payMethods,
+                updatedAt: new Date().toISOString(),
+            };
+            window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(payload));
+            window.dispatchEvent(new CustomEvent('dian-motor:settings-updated', { detail: payload }));
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2500);
+            toast.success('Pengaturan sistem Dian Motor berhasil disimpan!');
+        } catch (err) {
+            toast.error('Gagal menyimpan pengaturan: ' + err.message);
+        }
+    };
+
+    const togglePref = (k) => () => setPrefs(p => ({ ...p, [k]: !p[k] }));
+    const togglePay = (m) => () => setPayMethods(p => ({ ...p, [m]: !p[m] }));
+
     const supabaseOk = isSupabaseConfigured();
     const midtransOk = Boolean(process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && !process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY.startsWith('your-') && process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY !== 'your-client-key');
     const health = [
@@ -49,6 +101,8 @@ export default function Page() {
                         <TabsTrigger value="system" className={tabCls}>Preferensi Operasional</TabsTrigger>
                         <TabsTrigger value="payment" className={tabCls}>Metode Pembayaran</TabsTrigger>
                     </TabsList>
+                    
+                    {/* Tab 1: Informasi Bisnis */}
                     <TabsContent value="business" className="mt-4">
                         <div className="grid items-start gap-4 xl:grid-cols-2">
                             <Card className="rounded-[17px]">
@@ -60,27 +114,53 @@ export default function Page() {
                                     <FieldGroup>
                                         <Field>
                                             <FieldLabel>Nama Bengkel</FieldLabel>
-                                            <Input defaultValue="DIAN MOTOR" className="h-11 font-bold"/>
+                                            <Input 
+                                                value={profile.nama} 
+                                                onChange={e => setProfile(p => ({ ...p, nama: e.target.value }))} 
+                                                className="h-11 font-bold"
+                                            />
                                         </Field>
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <Field>
                                                 <FieldLabel>WhatsApp / Telepon</FieldLabel>
-                                                <Input defaultValue="+62 823-1388-9969" className="h-11 font-mono"/>
+                                                <Input 
+                                                    value={profile.telepon} 
+                                                    onChange={e => setProfile(p => ({ ...p, telepon: e.target.value }))} 
+                                                    className="h-11 font-mono"
+                                                />
                                             </Field>
                                             <Field>
                                                 <FieldLabel>Jam Operasional</FieldLabel>
-                                                <Input defaultValue="Setiap Hari, 08.30 – 22.00 WIB" className="h-11"/>
+                                                <Input 
+                                                    value={profile.jamOperasional} 
+                                                    onChange={e => setProfile(p => ({ ...p, jamOperasional: e.target.value }))} 
+                                                    className="h-11"
+                                                />
                                             </Field>
                                         </div>
                                         <Field>
                                             <FieldLabel>Alamat Lengkap Workshop</FieldLabel>
-                                            <Textarea defaultValue="Jl. Ps. Wage, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273" rows={3}/>
+                                            <Textarea 
+                                                value={profile.alamat} 
+                                                onChange={e => setProfile(p => ({ ...p, alamat: e.target.value }))} 
+                                                rows={3}
+                                            />
                                         </Field>
                                         <Field>
                                             <FieldLabel>Rekening Resmi Toko (Transfer Bank)</FieldLabel>
-                                            <Input defaultValue="BCA: 0461782991 a.n. DIAN MOTOR" className="h-11 font-mono"/>
+                                            <Input 
+                                                value={profile.rekening} 
+                                                onChange={e => setProfile(p => ({ ...p, rekening: e.target.value }))} 
+                                                className="h-11 font-mono font-semibold"
+                                            />
                                         </Field>
-                                        <Button className="h-10 cursor-pointer" onClick={() => toast.success('Profil bengkel berhasil diperbarui.')}>Simpan Perubahan</Button>
+                                        <Button 
+                                            className="h-10 cursor-pointer bg-primary hover:bg-primary/90 text-white font-bold" 
+                                            onClick={saveSettings}
+                                        >
+                                            {saved ? <Check className="size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+                                            {saved ? 'Pengaturan Tersimpan!' : 'Simpan Perubahan'}
+                                        </Button>
                                     </FieldGroup>
                                 </CardContent>
                             </Card>
@@ -103,6 +183,8 @@ export default function Page() {
                             </div>
                         </div>
                     </TabsContent>
+
+                    {/* Tab 2: Preferensi Operasional */}
                     <TabsContent value="system" className="mt-4">
                         <div className="grid items-start gap-4 xl:grid-cols-2">
                             <Card className="rounded-[17px]">
@@ -112,10 +194,10 @@ export default function Page() {
                                 </CardHeader>
                                 <CardContent className="grid gap-4 p-5">
                                     {[
-                                        [prefs.notifStok, set('notifStok'), 'Peringatan Stok Menipis', 'Tampilkan indikator peringatan stok kritis dan barang habis di dashboard monitoring.'],
-                                        [prefs.waReceipt, set('waReceipt'), 'Struk Digital WhatsApp', 'Otomatis sediakan link nota & struk WhatsApp resmi pelanggan setelah transaksi kasir lunas.'],
-                                        [prefs.auditLog, set('auditLog'), 'Pencatatan Audit & Mutasi', 'Arsipkan seluruh log barang masuk supplier, pengeluaran kasir, dan pemakaian servis otomatis.'],
-                                        [prefs.cloudSync, set('cloudSync'), 'Sinkronisasi Cloud Supabase', 'Seluruh transaksi dan data suku cadang tersinkronisasi live ke cloud database.']
+                                        [prefs.notifStok, togglePref('notifStok'), 'Peringatan Stok Menipis', 'Tampilkan indikator peringatan stok kritis dan barang habis di dashboard monitoring.'],
+                                        [prefs.waReceipt, togglePref('waReceipt'), 'Struk Digital WhatsApp', 'Otomatis sediakan link nota & struk WhatsApp resmi pelanggan setelah transaksi kasir lunas.'],
+                                        [prefs.auditLog, togglePref('auditLog'), 'Pencatatan Audit & Mutasi', 'Arsipkan seluruh log barang masuk supplier, pengeluaran kasir, dan pemakaian servis otomatis.'],
+                                        [prefs.cloudSync, togglePref('cloudSync'), 'Sinkronisasi Cloud Supabase', 'Seluruh transaksi dan data suku cadang tersinkronisasi live ke cloud database.']
                                     ].map(([on, fn, name, desc]) => (
                                         <div key={name} className="flex items-center justify-between gap-4 border-b border-border pb-3.5 last:border-0 last:pb-0">
                                             <span>
@@ -125,6 +207,15 @@ export default function Page() {
                                             <Switch on={on} onChange={fn}/>
                                         </div>
                                     ))}
+                                    <div className="pt-2">
+                                        <Button 
+                                            className="h-10 cursor-pointer bg-primary hover:bg-primary/90 text-white font-bold" 
+                                            onClick={saveSettings}
+                                        >
+                                            {saved ? <Check className="size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+                                            {saved ? 'Kebijakan Tersimpan!' : 'Simpan Kebijakan Operasional'}
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                             <Card className="rounded-[17px]">
@@ -150,6 +241,8 @@ export default function Page() {
                             </Card>
                         </div>
                     </TabsContent>
+
+                    {/* Tab 3: Metode Pembayaran */}
                     <TabsContent value="payment" className="mt-4">
                         <div className="grid items-start gap-4 xl:grid-cols-2">
                             <Card className="rounded-[17px]">
@@ -168,9 +261,18 @@ export default function Page() {
                                                     {m.includes('Tunai') ? 'Pembayaran uang fisik langsung dengan kalkulasi kembalian otomatis.' : m.includes('QRIS') ? 'Scan QRIS Standar Nasional dengan nominal pas.' : 'Transfer ke rekening resmi toko BCA: 0461782991.'}
                                                 </p>
                                             </div>
-                                            <Switch on={payMethods[m]} onChange={() => setPayMethods(p => ({ ...p, [m]: !p[m] }))}/>
+                                            <Switch on={payMethods[m]} onChange={togglePay(m)}/>
                                         </div>
                                     ))}
+                                    <div className="pt-2">
+                                        <Button 
+                                            className="h-10 cursor-pointer bg-primary hover:bg-primary/90 text-white font-bold" 
+                                            onClick={saveSettings}
+                                        >
+                                            {saved ? <Check className="size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+                                            {saved ? 'Metode Pembayaran Tersimpan!' : 'Simpan Metode Pembayaran'}
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>

@@ -98,26 +98,61 @@ function writeServices(list) {
 const SEED_SERVICES = [];
 
 function PartsEditor({ parts, catalog, onChange }) {
-    return <div className="rounded-xl border border-border bg-muted/50 p-3">
-        <div className="flex items-center justify-between gap-2">
-            <p className="text-[13px] font-semibold">Sparepart Dipakai</p>
+    const available = (catalog || []).filter(p => (p.stock || 0) > 0);
+    return <div className="rounded-xl border border-border bg-muted/40 p-3.5">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p className="text-[13px] font-bold text-foreground">Sparepart / Suku Cadang Dipakai</p>
+                <p className="text-[11px] text-muted-foreground">Pilih suku cadang dari stok bengkel untuk servis ini</p>
+            </div>
             <Select value={null} onValueChange={v => {
                 const p = catalog.find(x => x.id === v);
                 if (!p) return;
                 const existing = parts.findIndex(x => x.productId === p.id);
                 onChange(existing === -1 ? [...parts, { productId: p.id, productCode: p.code, productName: p.name, unit: p.unit, sellingPrice: p.sellingPrice || 0, quantity: 1 }] : parts.map((x, k) => k === existing ? { ...x, quantity: x.quantity + 1 } : x));
             }}>
-                <SelectTrigger className="h-9 w-48 bg-card"><SelectValue placeholder="Tambah sparepart..."/></SelectTrigger>
-                <SelectContent><SelectGroup>{catalog.filter(p => p.stock > 0).map(p => <SelectItem key={p.id} value={p.id}>{p.code} — {p.name} ({p.stock} {p.unit} · {rupiah(p.sellingPrice)})</SelectItem>)}</SelectGroup></SelectContent>
+                <SelectTrigger className="h-10 w-full sm:w-[320px] bg-card border-border font-medium text-left">
+                    <SelectValue placeholder="+ Pilih Suku Cadang Bengkel..."/>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false} align="end" className="!w-auto !min-w-[340px] sm:!min-w-[460px] max-w-[90vw] max-h-80 shadow-2xl">
+                    <SelectGroup>
+                        {available.length === 0 ? (
+                            <div className="p-3 text-center text-xs text-muted-foreground">
+                                Tidak ada stok sparepart tersedia
+                            </div>
+                        ) : (
+                            available.map(p => (
+                                <SelectItem key={p.id} value={p.id} className="cursor-pointer py-2.5 px-3 border-b border-border/40 last:border-0 hover:bg-muted/70">
+                                    <div className="flex flex-col gap-1 text-left min-w-0 flex-1">
+                                        <span className="font-semibold text-xs leading-snug whitespace-normal break-words text-foreground">
+                                            {p.name}
+                                        </span>
+                                        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-foreground">{p.code}</span>
+                                            <span>·</span>
+                                            <span>Tersedia: <strong className="text-emerald-500">{p.stock} {p.unit}</strong></span>
+                                            <span>·</span>
+                                            <span className="font-semibold text-foreground">{rupiah(p.sellingPrice)}</span>
+                                        </div>
+                                    </div>
+                                </SelectItem>
+                            ))
+                        )}
+                    </SelectGroup>
+                </SelectContent>
             </Select>
         </div>
         {parts.length > 0
-            ? <ul className="mt-3 grid gap-2">{parts.map((part, i) => <li key={`${part.productId}-${i}`} className="flex items-center gap-2 rounded-lg bg-card px-2.5 py-2">
-                <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold">{part.productName}</p><p className="font-mono text-[10px] text-muted-foreground">{part.productCode}</p></div>
-                <Input type="number" min="1" value={part.quantity} onChange={e => onChange(parts.map((x, k) => k === i ? { ...x, quantity: Math.max(1, Math.trunc(Number(e.target.value) || 1)) } : x))} className="h-8 w-16 text-right" aria-label={`Jumlah ${part.productName}`}/>
-                <small className="text-[11px] text-muted-foreground">{part.unit}</small>
-                <span className="font-mono text-xs font-bold text-foreground">{rupiah((part.sellingPrice || 0) * (part.quantity || 1))}</span>
-                <button type="button" onClick={() => onChange(parts.filter((_, k) => k !== i))} className="text-red-500 hover:text-red-400" aria-label={`Hapus ${part.productName}`}><Trash2 className="size-3.5"/></button>
+            ? <ul className="mt-3 grid gap-2">{parts.map((part, i) => <li key={`${part.productId}-${i}`} className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 rounded-lg bg-card border border-border/60 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold text-foreground leading-snug">{part.productName}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground">{part.productCode} · Satuan: {part.unit}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <Input type="number" min="1" value={part.quantity} onChange={e => onChange(parts.map((x, k) => k === i ? { ...x, quantity: Math.max(1, Math.trunc(Number(e.target.value) || 1)) } : x))} className="h-8 w-16 text-right font-bold" aria-label={`Jumlah ${part.productName}`}/>
+                    <span className="font-mono text-xs font-bold text-foreground min-w-[70px] text-right">{rupiah((part.sellingPrice || 0) * (part.quantity || 1))}</span>
+                    <button type="button" onClick={() => onChange(parts.filter((_, k) => k !== i))} className="text-red-500 hover:text-red-400 p-1" aria-label={`Hapus ${part.productName}`}><Trash2 className="size-3.5"/></button>
+                </div>
             </li>)}</ul>
             : <p className="mt-2 text-[11px] text-muted-foreground">Belum ada sparepart. Stok dipotong saat servis disimpan.</p>}
     </div>;

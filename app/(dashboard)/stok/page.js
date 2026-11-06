@@ -91,15 +91,18 @@ export default function StockPage() {
                 </>
             ) : (
                 <>
-                    <Button variant="outline" onClick={() => openMovement(null, 'IN')}><ArrowDownToLine data-icon="inline-start"/>Barang Masuk</Button>
-                    <Button variant="outline" onClick={() => openMovement(null, 'OUT')}><ArrowUpFromLine data-icon="inline-start"/>Barang Keluar</Button>
-                    <DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground data-open:bg-muted"><MoreHorizontal/><span className="sr-only">Alat stok</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-52 p-1.5">
-                        <DropdownMenuItem className="h-9" onClick={() => setBulkOpen(true)}><FileSpreadsheet className="size-4 text-muted-foreground"/>Impor Massal Katalog</DropdownMenuItem>
-                        <DropdownMenuItem className="h-9" onClick={() => setBulkMovement({ open: true, type: 'IN' })}><ArrowDownToLine className="size-4 text-emerald-500"/>Impor Excel Barang Masuk</DropdownMenuItem>
-                        <DropdownMenuItem className="h-9" onClick={() => setBulkMovement({ open: true, type: 'OUT' })}><ArrowUpFromLine className="size-4 text-red-500"/>Impor Excel Barang Keluar</DropdownMenuItem>
+                    <Button className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer" onClick={() => openMovement(null, 'IN')}>
+                        <ArrowDownToLine data-icon="inline-start" className="size-4 mr-1"/>+ Catat Barang Masuk
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push('/barang-masuk')}>
+                        <ArrowDownToLine data-icon="inline-start"/>Riwayat Masuk
+                    </Button>
+                    <DropdownMenu><DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:text-foreground data-open:bg-muted cursor-pointer"><MoreHorizontal/><span className="sr-only">Alat stok</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-52 p-1.5">
+                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setBulkOpen(true)}><FileSpreadsheet className="size-4 text-muted-foreground"/>Impor Massal Katalog</DropdownMenuItem>
+                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setBulkMovement({ open: true, type: 'IN' })}><ArrowDownToLine className="size-4 text-emerald-500"/>Impor Excel Barang Masuk</DropdownMenuItem>
                         <DropdownMenuSeparator/>
-                        <DropdownMenuItem className="h-9" onClick={() => downloadStockCsv(shown)} disabled={!shown.length}><FileSpreadsheet className="size-4 text-muted-foreground"/>Unduh CSV Stok</DropdownMenuItem>
-                        <DropdownMenuItem className="h-9" onClick={() => { refresh(); toast.success('Data stok disinkronkan.'); }}><RefreshCw className="size-4 text-muted-foreground"/>Sinkronkan Stok</DropdownMenuItem>
+                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => downloadStockCsv(shown)} disabled={!shown.length}><FileSpreadsheet className="size-4 text-muted-foreground"/>Unduh CSV Stok</DropdownMenuItem>
+                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => { refresh(); toast.success('Data stok disinkronkan.'); }}><RefreshCw className="size-4 text-muted-foreground"/>Sinkronkan Stok</DropdownMenuItem>
                     </DropdownMenuContent></DropdownMenu>
                 </>
             )}
@@ -128,19 +131,50 @@ export default function StockPage() {
                         <td className="px-3.5 py-3 text-[13px]">{p.minimumStock}</td>
                         <td className="px-3.5 py-3 text-right text-[13px] font-semibold">{rupiah(p.sellingPrice)}</td>
                         <td className="px-3.5 py-3"><StockBadge stock={p.stock} minimum={p.minimumStock}/></td>
-                        {!isOwner && <td className="px-3.5 py-3 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi {p.code}</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48 p-1.5">
-                            <DropdownMenuItem className="h-9" onClick={() => openMovement(p.id, 'IN')}><PackagePlus className="size-4 text-emerald-500"/>Tambah Stok</DropdownMenuItem>
-                            <DropdownMenuItem className="h-9" onClick={() => openMovement(p.id, 'OUT')}><PackageX className="size-4 text-red-500"/>Kurangi Stok</DropdownMenuItem>
-                            <DropdownMenuItem className="h-9" onClick={() => setProductForm({ open: true, product: p })}><Pencil className="size-4 text-muted-foreground"/>Ubah Barang</DropdownMenuItem>
-                            <DropdownMenuSeparator/>
-                            <DropdownMenuItem variant="destructive" className="h-9 text-red-500" onClick={() => setDeleteTarget(p)}><Trash2 className="size-4 text-red-500"/>Hapus Barang</DropdownMenuItem>
-                        </DropdownMenuContent></DropdownMenu></td>}
+                        {!isOwner && <td className="px-3.5 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 cursor-pointer"
+                                    onClick={() => openMovement(p.id, 'IN')}
+                                    title="Tambah stok barang ini"
+                                >
+                                    <Plus className="size-3.5 mr-1" />
+                                    Tambah Stok
+                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent cursor-pointer">
+                                        <MoreHorizontal/><span className="sr-only">Aksi {p.code}</span>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48 p-1.5">
+                                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => openMovement(p.id, 'IN')}>
+                                            <PackagePlus className="size-4 text-emerald-500"/>Tambah Stok Masuk
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setProductForm({ open: true, product: p })}>
+                                            <Pencil className="size-4 text-muted-foreground"/>Ubah Data Barang
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator/>
+                                        <DropdownMenuItem variant="destructive" className="h-9 text-red-500 cursor-pointer" onClick={() => setDeleteTarget(p)}>
+                                            <Trash2 className="size-4 text-red-500"/>Hapus Barang
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </td>}
                     </tr>)}</tbody></table></div>
                 <div className="grid gap-3 p-3 md:hidden">{shown.map(p => <article key={p.id} className="rounded-xl border border-border p-4">
                     <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="font-mono text-[10px] text-muted-foreground">{p.code}</p><h2 className="mt-1 text-sm font-semibold">{p.name}</h2></div><span className="part-cell"><span>{p.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</span></span></div>
                     <div className="mt-3 flex items-center justify-between"><strong>{p.stock} <small className="font-normal text-muted-foreground">{p.unit}</small></strong><StockBadge stock={p.stock} minimum={p.minimumStock}/></div>
                     <p className="mt-1 text-xs text-muted-foreground">{p.category} · {rupiah(p.sellingPrice)}</p>
-                    {!isOwner && <div className="mt-3 grid grid-cols-3 gap-2"><Button variant="outline" size="sm" onClick={() => openMovement(p.id, 'IN')}><Plus data-icon="inline-start"/>Tambah</Button><Button variant="outline" size="sm" onClick={() => openMovement(p.id, 'OUT')}><PackageX data-icon="inline-start"/>Kurangi</Button><Button variant="outline" size="sm" onClick={() => setProductForm({ open: true, product: p })}><Pencil data-icon="inline-start"/>Ubah</Button></div>}
+                    {!isOwner && <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button variant="default" size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" onClick={() => openMovement(p.id, 'IN')}>
+                            <Plus data-icon="inline-start"/>Tambah Stok
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setProductForm({ open: true, product: p })}>
+                            <Pencil data-icon="inline-start"/>Ubah
+                        </Button>
+                    </div>}
                 </article>)}</div>
                 {!shown.length && <p className="py-16 text-center text-muted-foreground">{data.length ? 'Tidak ada data yang cocok dengan pencarian.' : 'Belum ada barang. Klik Tambah Barang untuk mulai.'}</p>}
             </div>}

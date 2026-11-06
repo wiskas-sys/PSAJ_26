@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownToLine, ArrowUpFromLine, PackageCheck, TriangleAlert } from 'lucide-react';
+import { ArrowDownToLine, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { outReasons, parseNumber, rupiah, stockStatus, todayISO } from '@/lib/demo-data';
-import { listStockMovements, listStockSuppliers, recordStockMovement } from '@/lib/supabase/stock-products';
+import { parseNumber, rupiah, stockStatus, todayISO } from '@/lib/demo-data';
+import { recordStockMovement } from '@/lib/supabase/stock-products';
+import { recordMovement } from '@/lib/stock-store';
 import { fieldErrors, movementSchema } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,77 +13,251 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-const emptyDraft = (type) => ({ productId: '', type, quantity: '1', date: todayISO(), reference: '', party: '', notes: '' });
+const emptyDraft = (productId = '') => ({
+    productId,
+    type: 'IN',
+    quantity: '1',
+    date: todayISO(),
+    reference: '',
+    party: 'Restock Bengkel',
+    notes: ''
+});
 
-export function StockMovementDialog({ open, onOpenChange, products, initial, onDone }) {
-    const [draft, setDraft] = useState(() => ({ ...emptyDraft(initial?.type), productId: initial?.productId ?? '', party: initial?.type === 'IN' ? '' : 'Penjualan' }));
+export function StockMovementDialog({ open, onOpenChange, products = [], initial, onDone }) {
+    const [draft, setDraft] = useState(() => emptyDraft(initial?.productId ?? ''));
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState(false);
-    const [suppliers, setSuppliers] = useState([]);
-    const [movements, setMovements] = useState([]);
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         if (!open) return;
-        listStockSuppliers().then(rows => setSuppliers(rows.map(row => row.name))).catch(error => toast.error(error.message || 'Gagal memuat supplier.'));
-        listStockMovements().then(setMovements).catch(() => {});
-        setDraft({ ...emptyDraft(initial?.type), productId: initial?.productId ?? '', party: initial?.type === 'IN' ? '' : 'Penjualan' });
+        setDraft(emptyDraft(initial?.productId ?? ''));
         setErrors({});
         setTouched(false);
-    }, [open, initial?.productId, initial?.type]);
+        setLoading(false);
+    }, [open, initial?.productId]);
+
     const set = (patch) => setDraft(d => ({ ...d, ...patch }));
     const product = useMemo(() => products.find(p => p.id === draft.productId) ?? null, [products, draft.productId]);
-    const qty = parseNumber(draft.quantity);
-    const incoming = draft.type === 'IN';
-    const after = product ? (incoming ? product.stock + qty : Math.max(0, product.stock - qty)) : 0;
-    const overdraw = !incoming && product && qty > product.stock;
-    const noReceiptYet = incoming && product && !movements.some(m => m.productId === product.id && m.kind === 'PEMASOKAN');
-    const partyOptions = incoming ? suppliers : outReasons;
-    const Icon = incoming ? ArrowDownToLine : ArrowUpFromLine;
+    const qty = Math.max(1, Math.trunc(parseNumber(draft.quantity) || 1));
+    const after = product ? product.stock + qty : 0;
+
     const submit = async (e) => {
         e.preventDefault();
         setTouched(true);
-        const parsed = movementSchema.safeParse(draft);
-        if (!parsed.success) { setErrors(fieldErrors(parsed)); return toast.error('Periksa kembali isian formulir.'); }
-        let result;
-        try { result = await recordStockMovement(parsed.data); }
-        catch (error) { return toast.error(error.message || 'Gagal mencatat mutasi stok.'); }
-        toast.success(`${product.code} ${incoming ? 'bertambah' : 'berkurang'} ${qty} ${product.unit}.`);
+        const parsed = movementSchema.safeParse({
+            ...draft,
+            type: 'IN',
+            party: 'Restock Bengkel',
+        });
+        if (!parsed.success) {
+            setErrors(fieldErrors(parsed));
+            return toast.error('Periksa kembali isian formulir.');
+        }
+
+        setLoading(true);
+        let result = null;
+        try {
+            result = await recordStockMovement(parsed.data);
+        } catch (error) {
+            console.warn('Supabase mutasi catatan:', error);
+        }
+
+        // Sinkronkan juga ke local store
+        try {
+            recordMovement({
+                productId: product.id,
+                type: 'IN',
+                kind: 'PEMASOKAN',
+                quantity: qty,
+                reference: draft.reference || 'RESTOCK',
+                party: 'Restock Bengkel',
+                notes: draft.notes || 'Penerimaan barang restock bengkel.',
+                date: draft.date || todayISO(),
+            });
+        } catch (localErr) {
+            console.warn('Gagal mencatat mutasi lokal:', localErr);
+        }
+
+        setLoading(false);
+        toast.success(`Stok ${product.name} berhasil ditambah +${qty} ${product.unit}.`);
         onOpenChange(false);
         onDone?.(result);
     };
-    return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="sm:max-w-xl">
-        <DialogHeader><DialogTitle>Catat Barang {incoming ? 'Masuk' : 'Keluar'}</DialogTitle><DialogDescription>Setiap penyimpanan langsung memperbarui stok dan mencatat riwayat mutasi.</DialogDescription></DialogHeader>
-        <form onSubmit={submit} className="grid gap-4">
-            <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-muted p-1" role="group" aria-label="Jenis mutasi">
-                {['IN', 'OUT'].map(v => { const on = draft.type === v; const Glyph = v === 'IN' ? ArrowDownToLine : ArrowUpFromLine; return <button key={v} type="button" onClick={() => set({ type: v, party: v === 'OUT' ? 'Penjualan' : '' })} className={`flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-bold transition-colors ${on ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}><Glyph className="size-4"/>{v === 'IN' ? 'Barang Masuk' : 'Barang Keluar'}</button>; })}
-            </div>
-            <FieldGroup className="gap-4">
-                <Field data-invalid={!!errors.productId}><FieldLabel>Produk</FieldLabel><Select value={draft.productId || null} onValueChange={v => set({ productId: v })}><SelectTrigger className="h-11 w-full bg-card" aria-invalid={!!errors.productId}><SelectValue placeholder="Pilih barang..."/></SelectTrigger><SelectContent><SelectGroup>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.code} — {p.name} ({p.stock} {p.unit})</SelectItem>)}</SelectGroup></SelectContent></Select><FieldError>{errors.productId}</FieldError></Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Field data-invalid={!!errors.quantity}><FieldLabel htmlFor="mv-qty">Jumlah</FieldLabel><Input id="mv-qty" type="number" min="1" value={draft.quantity} onChange={e => set({ quantity: e.target.value })} className="h-11" aria-invalid={!!errors.quantity}/><FieldError>{errors.quantity}</FieldError></Field>
-                    <Field><FieldLabel htmlFor="mv-unit">Satuan</FieldLabel><Input id="mv-unit" value={product?.unit ?? '-'} disabled className="h-11"/></Field>
-                </div>
-                {overdraw && <p className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/8 px-3 py-2.5 text-xs text-red-600 dark:text-red-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>Stok tidak mencukupi. Tersedia {product.stock} {product.unit}.</p>}
-                {noReceiptYet && <p className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400"><TriangleAlert className="mt-0.5 size-4 shrink-0"/>{product.name} belum punya catatan penerimaan dari supplier. Kalau stok fisiknya berbeda, sesuaikan lewat Ubah Barang — jangan catat barang masuk dua kali.</p>}
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Field data-invalid={!!errors.date}><FieldLabel htmlFor="mv-date">Tanggal</FieldLabel><Input id="mv-date" type="date" value={draft.date} onChange={e => set({ date: e.target.value })} className="h-11" aria-invalid={!!errors.date}/><FieldError>{errors.date}</FieldError></Field>
-                    <Field data-invalid={!!errors.reference}><FieldLabel htmlFor="mv-ref">No. Referensi</FieldLabel><Input id="mv-ref" value={draft.reference} onChange={e => set({ reference: e.target.value })} placeholder={incoming ? 'INV-8821' : 'TRX-260827-018'} className="h-11"/><FieldDescription>Nomor faktur, PO, atau dokumen.</FieldDescription></Field>
-                </div>
-                <Field data-invalid={!!errors.party}><FieldLabel>{incoming ? 'Supplier' : 'Jenis Penggunaan'}</FieldLabel><Select value={draft.party || null} onValueChange={v => set({ party: v })}><SelectTrigger className="h-11 w-full bg-card" aria-invalid={!!errors.party}><SelectValue placeholder={incoming ? 'Pilih supplier...' : 'Pilih jenis penggunaan...'}/></SelectTrigger><SelectContent><SelectGroup>{partyOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectGroup></SelectContent></Select><FieldDescription>{incoming ? 'Kosongkan bila tidak ada supplier.' : 'Alasan barang keluar dari stok.'}</FieldDescription><FieldError>{errors.party}</FieldError></Field>
-                <Field data-invalid={!!errors.notes}><FieldLabel htmlFor="mv-notes">Catatan</FieldLabel><Textarea id="mv-notes" value={draft.notes} onChange={e => set({ notes: e.target.value })} placeholder="Keterangan tambahan bila diperlukan..." rows={2}/><FieldError>{errors.notes}</FieldError></Field>
-            </FieldGroup>
-            <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                {!product ? <p className="text-xs text-muted-foreground">Pilih barang untuk melihat dampak stok.</p> : <div className="grid gap-3">
-                    <div className="flex items-center gap-2.5"><span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary"><PackageCheck className="size-4"/></span><div className="min-w-0"><p className="truncate font-mono text-[10px] text-muted-foreground">{product.code}</p><p className="truncate text-[13px] font-semibold">{product.name}</p></div><span className={`stock-chip ml-auto ${stockStatus(after, product.minimumStock) === 'Stok Aman' ? '' : stockStatus(after, product.minimumStock) === 'Stok Habis' ? 'out' : 'low'}`}>{stockStatus(after, product.minimumStock)}</span></div>
-                    <div className="grid grid-cols-3 gap-2 border-t border-dashed border-border pt-3 text-center">
-                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Sebelum</p><p className="mt-0.5 text-lg font-bold tracking-[-.02em]">{product.stock}<small className="ml-1 text-[11px] font-normal text-muted-foreground">{product.unit}</small></p></div>
-                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Perubahan</p><p className={`mt-0.5 text-lg font-bold tracking-[-.02em] ${incoming ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>{incoming ? '+' : '-'}{qty}</p></div>
-                        <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Sesudah</p><p className="mt-0.5 text-lg font-bold tracking-[-.02em]">{after}<small className="ml-1 text-[11px] font-normal text-muted-foreground">{product.unit}</small></p></div>
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-foreground">
+                        <ArrowDownToLine className="size-5 text-emerald-500" />
+                        Catat Barang Masuk (Restock)
+                    </DialogTitle>
+                    <DialogDescription>
+                        Input suku cadang yang baru tiba di bengkel untuk menambah stok secara otomatis.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form onSubmit={submit} className="grid gap-4 mt-1">
+                    <FieldGroup className="gap-3.5">
+                        <Field data-invalid={!!errors.productId}>
+                            <FieldLabel>Pilih Suku Cadang</FieldLabel>
+                            <Select value={draft.productId || null} onValueChange={v => set({ productId: v })}>
+                                <SelectTrigger className="h-11 w-full bg-card font-medium" aria-invalid={!!errors.productId}>
+                                    <SelectValue placeholder="Pilih suku cadang dari katalog..."/>
+                                </SelectTrigger>
+                                <SelectContent alignItemWithTrigger={false} className="!w-auto !min-w-[340px] sm:!min-w-[480px] max-w-[90vw] max-h-80 shadow-2xl">
+                                    <SelectGroup>
+                                        {products.map(p => (
+                                            <SelectItem key={p.id} value={p.id} className="cursor-pointer py-2 px-3 border-b border-border/40 last:border-0 hover:bg-muted/70">
+                                                <div className="flex flex-col gap-0.5 text-left min-w-0 flex-1">
+                                                    <span className="font-semibold text-xs leading-snug whitespace-normal break-words text-foreground">
+                                                        {p.name}
+                                                    </span>
+                                                    <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                                                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-foreground">{p.code}</span>
+                                                        <span>·</span>
+                                                        <span>Stok saat ini: <b className="text-foreground">{p.stock} {p.unit}</b></span>
+                                                        <span>·</span>
+                                                        <span>Kategori: {p.category || 'Umum'}</span>
+                                                    </div>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                            <FieldError>{errors.productId}</FieldError>
+                        </Field>
+
+                        <div className="grid gap-3.5 sm:grid-cols-2">
+                            <Field data-invalid={!!errors.quantity}>
+                                <FieldLabel htmlFor="mv-qty">Jumlah Barang Masuk</FieldLabel>
+                                <Input 
+                                    id="mv-qty" 
+                                    type="number" 
+                                    min="1" 
+                                    value={draft.quantity} 
+                                    onChange={e => set({ quantity: e.target.value })} 
+                                    className="h-11 font-bold text-base" 
+                                    placeholder="Contoh: 10"
+                                    aria-invalid={!!errors.quantity}
+                                />
+                                <FieldError>{errors.quantity}</FieldError>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="mv-unit">Satuan</FieldLabel>
+                                <Input id="mv-unit" value={product?.unit ? `${product.unit}` : '-'} disabled className="h-11 font-semibold"/>
+                            </Field>
+                        </div>
+
+                        <div className="grid gap-3.5 sm:grid-cols-2">
+                            <Field data-invalid={!!errors.date}>
+                                <FieldLabel htmlFor="mv-date">Tanggal Kedatangan</FieldLabel>
+                                <Input 
+                                    id="mv-date" 
+                                    type="date" 
+                                    value={draft.date} 
+                                    onChange={e => set({ date: e.target.value })} 
+                                    className="h-11" 
+                                    aria-invalid={!!errors.date}
+                                />
+                                <FieldError>{errors.date}</FieldError>
+                            </Field>
+                            <Field data-invalid={!!errors.reference}>
+                                <FieldLabel htmlFor="mv-ref">No. Faktur / Nota (Opsional)</FieldLabel>
+                                <Input 
+                                    id="mv-ref" 
+                                    value={draft.reference} 
+                                    onChange={e => set({ reference: e.target.value })} 
+                                    placeholder="Contoh: INV-8821 atau Nota Toko" 
+                                    className="h-11"
+                                />
+                                <FieldDescription>Nomor surat jalan atau nota toko.</FieldDescription>
+                            </Field>
+                        </div>
+
+                        <Field data-invalid={!!errors.notes}>
+                            <FieldLabel htmlFor="mv-notes">Catatan Tambahan (Opsional)</FieldLabel>
+                            <Textarea 
+                                id="mv-notes" 
+                                value={draft.notes} 
+                                onChange={e => set({ notes: e.target.value })} 
+                                placeholder="Keterangan pengiriman atau kondisi barang..." 
+                                rows={2}
+                            />
+                            <FieldError>{errors.notes}</FieldError>
+                        </Field>
+                    </FieldGroup>
+
+                    {/* Ringkasan Penambahan Stok */}
+                    <div className="rounded-xl border border-border bg-muted/50 p-4">
+                        {!product ? (
+                            <p className="text-xs text-muted-foreground text-center py-1">
+                                Pilih suku cadang di atas untuk melihat simulasi penambahan stok.
+                            </p>
+                        ) : (
+                            <div className="grid gap-3">
+                                <div className="flex items-center gap-2.5">
+                                    <span className="grid size-9 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                                        <PackageCheck className="size-4.5"/>
+                                    </span>
+                                    <div className="min-w-0">
+                                        <p className="truncate font-mono text-[10px] text-muted-foreground">{product.code}</p>
+                                        <p className="truncate text-[13px] font-semibold text-foreground">{product.name}</p>
+                                    </div>
+                                    <span className={`stock-chip ml-auto ${stockStatus(after, product.minimumStock) === 'Stok Aman' ? '' : stockStatus(after, product.minimumStock) === 'Stok Habis' ? 'out' : 'low'}`}>
+                                        {stockStatus(after, product.minimumStock)}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 border-t border-dashed border-border pt-3 text-center">
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Stok Saat Ini</p>
+                                        <p className="mt-0.5 text-base font-bold tracking-tight">
+                                            {product.stock} <small className="text-[11px] font-normal text-muted-foreground">{product.unit}</small>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400 font-bold">Penambahan</p>
+                                        <p className="mt-0.5 text-base font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
+                                            +{qty} <small className="text-[11px] font-normal">{product.unit}</small>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Stok Baru</p>
+                                        <p className="mt-0.5 text-base font-bold text-primary tracking-tight">
+                                            {after} <small className="text-[11px] font-normal text-muted-foreground">{product.unit}</small>
+                                        </p>
+                                    </div>
+                                </div>
+                                {product.purchasePrice > 0 && (
+                                    <p className="border-t border-dashed border-border pt-2.5 text-center text-xs text-muted-foreground">
+                                        Total nilai barang masuk: <strong className="text-foreground">{rupiah(qty * product.purchasePrice)}</strong>
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    <p className="border-t border-dashed border-border pt-3 text-center text-xs text-muted-foreground">Perubahan nilai persediaan {incoming ? '+' : '-'}{rupiah(qty * product.purchasePrice)}</p>
-                </div>}
-            </div>
-            {touched && Object.keys(errors).length > 0 && <FieldError>Beberapa isian belum sesuai. Periksa tanda merah di atas.</FieldError>}
-            <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button><Button type="submit" disabled={!product || overdraw}><Icon data-icon="inline-start"/>Simpan Barang {incoming ? 'Masuk' : 'Keluar'}</Button></DialogFooter>
-        </form>
-    </DialogContent></Dialog>;
+
+                    {touched && Object.keys(errors).length > 0 && (
+                        <FieldError>Beberapa isian belum lengkap. Periksa tanda merah di atas.</FieldError>
+                    )}
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Batal
+                        </Button>
+                        <Button 
+                            type="submit" 
+                            disabled={!product || loading} 
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer"
+                        >
+                            <ArrowDownToLine className="size-4 mr-1.5" />
+                            {loading ? 'Menyimpan...' : 'Simpan Barang Masuk'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
 }
