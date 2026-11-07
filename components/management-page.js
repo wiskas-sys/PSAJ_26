@@ -221,7 +221,7 @@ export function ManagementPage({ title, description, addLabel, rows: rowsProp })
           <thead className="sticky top-0 z-10 bg-card border-b border-border shadow-xs">
             <tr>{head.map(h => <th key={h} className="px-3.5 py-3 text-left font-semibold text-xs uppercase tracking-wide bg-card">{h}</th>)}<th className="px-3.5 py-3 text-right font-semibold text-xs uppercase tracking-wide bg-card">Aksi</th></tr>
           </thead>
-          <tbody>{sorted.map(r => { const origIdx = rows.indexOf(r); return <tr key={origIdx} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+          <tbody>{sorted.map(r => { const origIdx = rows.indexOf(r); return <tr key={origIdx} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">{r.map((c, j) => {
                     const last = j === r.length - 1;
                     return <td key={j} className="px-3.5 py-3.5 align-middle">{last ? statusPill(c) : <CellContent title={title} c={c} j={j}/>}</td>;
                 })}<td className="px-3.5 py-3.5 text-right"><DropdownMenu><DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent"><MoreHorizontal/><span className="sr-only">Aksi</span></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44 p-1.5"><DropdownMenuItem className="h-9" onClick={() => setDetailIdx(origIdx)}><Eye className="size-4 text-muted-foreground"/>Lihat Detail</DropdownMenuItem>
