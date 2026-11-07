@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-const HEADERS = ['Kode Barang', 'Nama Barang', 'Kategori', 'Satuan', 'Stok', 'Stok Minimum', 'Harga Beli', 'Harga Jual'];
+const HEADERS = ['Kode Barang', 'Nama Barang', 'Kategori', 'Satuan', 'Stok', 'Stok Minimum', 'Harga Beli', 'Harga Jual', 'Nomor Rak'];
 const isHeader = (line) => /\bkode\b/i.test(line) && /\bnama\b/i.test(line);
 
 function splitRow(line) {
@@ -37,7 +37,7 @@ export function StockBulkImportDialog({ open, onOpenChange, products, onDone }) 
         const rows = lines.map(({ line, no }) => {
             const cells = splitRow(line).map(c => c.trim());
             const money = (v) => (`${v ?? ''}`.replace(/[^\d]/g, '') || '0');
-            const candidate = { code: cells[0] ?? '', name: cells[1] ?? '', category: cells[2] || 'Lainnya', unit: cells[3] || units[0], stock: cells[4] ?? '0', minimumStock: cells[5] ?? '0', purchasePrice: parseMoneyAutoRupiah(cells[6]), sellingPrice: parseMoneyAutoRupiah(cells[7]) };
+            const candidate = { code: cells[0] ?? '', name: cells[1] ?? '', category: cells[2] || 'Lainnya', unit: cells[3] || units[0], stock: cells[4] ?? '0', minimumStock: cells[5] ?? '0', purchasePrice: parseMoneyAutoRupiah(cells[6]), sellingPrice: parseMoneyAutoRupiah(cells[7]), rack: cells[8] ? cells[8].trim() : '' };
             const result = bulkRowSchema.safeParse(candidate);
             const duplicate = result.success && seen.has(candidate.code.toLowerCase());
             if (result.success) seen.add(candidate.code.toLowerCase());

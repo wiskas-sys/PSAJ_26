@@ -84,7 +84,7 @@ export default function PosPage() {
         const live = new Map(catalog.map(p => [p.id, p.stock]));
         return cart.filter(i => !i.product?.isService && i.qty > (live.get(i.product.id) ?? 0));
     }, [cart, catalog]);
-    const shown = useMemo(() => catalog.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category, catalog]);
+    const shown = useMemo(() => catalog.filter(p => `${p.name} ${p.code} ${p.rack || ''}`.toLowerCase().includes(query.toLowerCase()) && (category === 'Semua' || p.category === category)), [query, category, catalog]);
     const subtotal = cart.reduce((s, i) => s + i.product.sellingPrice * i.qty, 0);
     const total = Math.max(0, subtotal - discount);
     const change = Math.max(0, paid - total);
@@ -116,35 +116,81 @@ export default function PosPage() {
         if (!idempotencyRef.current.has(code)) idempotencyRef.current.set(code, crypto.randomUUID());
         try {
             const stockItems = cart.filter(i => !i.product?.isService);
+            
+            // 1. Optimistic catalog update: kurangi stok langsung di memori tanpa nunggu network (0 ms delay)
             if (stockItems.length > 0) {
-                await checkoutStockSale({ code, idempotencyKey: idempotencyRef.current.get(code),
-                items: stockItems.map(i => ({ product_id: i.product.id, quantity: i.qty })),
-                discount, method, paid: gatewayOrderId ? total : paid,
-                customerId: customer === 'umum' ? null : customer });
-
-                // Sinkronkan ke riwayat mutasi agar langsung muncul di Riwayat Barang Keluar akun Owner
-                try {
-                    for (const item of stockItems) {
-                        recordMovement({
-                            productId: item.product.id,
-                            type: 'OUT',
-                            kind: 'PEMAKAIAN',
-                            quantity: item.qty,
-                            reference: code,
-                            party: customerName || 'Pelanggan Kasir',
-                            notes: `Penjualan kasir (${method})`,
-                            date: todayISO(),
-                        });
-                    }
-                } catch (localErr) {
-                    console.warn('Gagal mencatat mutasi lokal:', localErr);
-                }
-            } else {
-                await fetch('/api/servis/bayar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ serviceId: code, customer: customerName, job: cart.map(i => i.product.name).join(', '), totalBill: total, method, paidAmount: gatewayOrderId ? total : paid, changeAmount: change }) });
+                setCatalog(prev => prev.map(p => {
+                    const found = stockItems.find(i => i.product.id === p.id);
+                    return found ? { ...p, stock: Math.max(0, p.stock - found.qty) } : p;
+                }));
             }
+
+            // 2. Simpan transaksi ke database Supabase
+            if (stockItems.length > 0) {
+                await checkoutStockSale({
+                    code,
+                    idempotencyKey: idempotencyRef.current.get(code),
+                    items: stockItems.map(i => ({ product_id: i.product.id, quantity: i.qty })),
+                    discount,
+                    method,
+                    paid: gatewayOrderId ? total : paid,
+                    customerId: customer === 'umum' ? null : customer
+                });
+
+                // Simpan mutasi lokal di background non-blocking
+                Promise.resolve().then(() => {
+                    try {
+                        for (const item of stockItems) {
+                            recordMovement({
+                                productId: item.product.id,
+                                type: 'OUT',
+                                kind: 'PEMAKAIAN',
+                                quantity: item.qty,
+                                reference: code,
+                                party: customerName || 'Pelanggan Kasir',
+                                notes: `Penjualan kasir (${method})`,
+                                date: todayISO(),
+                            });
+                        }
+                    } catch (e) {}
+                });
+            } else {
+                await fetch('/api/servis/bayar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serviceId: code,
+                        customer: customerName,
+                        job: cart.map(i => i.product.name).join(', '),
+                        totalBill: total,
+                        method,
+                        paidAmount: gatewayOrderId ? total : paid,
+                        changeAmount: change
+                    })
+                });
+            }
+
+            // 3. Update status berhasil seketika
             committedRef.current.add(code);
             setOrderCode(code);
-            setCatalog(await listStockProducts());
+
+            // Simpan transaksi terakhir ke sessionStorage agar halaman riwayat transaksi langsung terisi tanpa delay
+            try {
+                const recentTrx = {
+                    id: crypto.randomUUID(),
+                    transaction_code: code,
+                    created_at: new Date().toISOString(),
+                    customers: { name: customerName },
+                    payment_method: method,
+                    total: total,
+                    status: 'Selesai',
+                };
+                const existing = JSON.parse(sessionStorage.getItem('dian_motor_recent_txs') || '[]');
+                sessionStorage.setItem('dian_motor_recent_txs', JSON.stringify([recentTrx, ...existing.slice(0, 49)]));
+            } catch (e) {}
+
+            // Re-fetch katalog di background tanpa memblokir tampilan struk
+            listStockProducts().then(rows => setCatalog(rows)).catch(() => {});
             return true;
         } catch (error) {
             toast.error(error.message || 'Transaksi gagal disimpan ke Supabase.');
@@ -408,11 +454,32 @@ export default function PosPage() {
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.85fr)_420px]">
       <section className="min-w-0">
         <div className="mb-4 grid gap-3">
-          <div className="input-with-icon"><Search className="size-4"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari produk, kode SKU..." className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/></div>
+          <div className="input-with-icon"><Search className="size-4"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari produk, kode SKU, nomor rak (contoh: Rak A-01)..." className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/10"/></div>
           <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">{categories.map(c => <button key={c} type="button" onClick={() => setCategory(c)} className={cnTab(category === c)}>{c}</button>)}</div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{shown.map(p => <article key={p.id} className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/40"><div className="flex items-center justify-between gap-2"><span className="grid size-9 place-items-center rounded-[10px] bg-muted font-mono text-[11px] font-extrabold text-primary">{initials(p.name)}</span><StockChip stock={p.stock} minimum={p.minimumStock}/></div><p className="mt-3 font-mono text-[10px] text-muted-foreground">{p.code}</p><h2 className="mt-0.5 text-[15px] leading-snug font-semibold">{p.name}</h2><p className="mt-1 text-[11px] text-muted-foreground">{p.category} · {p.unit}</p><div className="mt-auto flex items-center justify-between gap-2 pt-4"><strong className="text-[15px]">{rupiah(p.sellingPrice)}</strong><Button size="sm" onClick={() => add(p)} disabled={p.stock === 0}><Plus data-icon="inline-start"/>Tambah</Button></div></article>)}
-        {!shown.length && <div className="grid h-48 place-items-center rounded-2xl border border-dashed border-border text-sm text-muted-foreground">Tidak ada produk yang cocok dengan pencarian.</div>}
+        <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3 max-h-[calc(100vh-270px)] overflow-y-auto pr-1">
+          {shown.map(p => <article key={p.id} className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/40">
+            <div className="flex items-center justify-between gap-2">
+              <span className="grid size-9 place-items-center rounded-[10px] bg-muted font-mono text-[11px] font-extrabold text-primary">{initials(p.name)}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                  📦 {p.rack || 'Rak A-01'}
+                </span>
+                <StockChip stock={p.stock} minimum={p.minimumStock}/>
+              </div>
+            </div>
+            <p className="mt-3 font-mono text-[10px] text-muted-foreground">{p.code}</p>
+            <h2 className="mt-0.5 text-[15px] leading-snug font-semibold">{p.name}</h2>
+            <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{p.category} · {p.unit}</span>
+              <span className="font-semibold text-amber-600 dark:text-amber-400 font-mono text-[10px]">{p.rack || 'Rak A-01'}</span>
+            </div>
+            <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+              <strong className="text-[15px]">{rupiah(p.sellingPrice)}</strong>
+              <Button size="sm" onClick={() => add(p)} disabled={p.stock === 0}><Plus data-icon="inline-start"/>Tambah</Button>
+            </div>
+          </article>)}
+          {!shown.length && <div className="grid h-48 col-span-full place-items-center rounded-2xl border border-dashed border-border text-sm text-muted-foreground">Tidak ada produk yang cocok dengan pencarian.</div>}
         </div>
       </section>
       <Card id="pos-cart-panel" className="rounded-[17px] shadow-xl xl:sticky xl:top-[100px]"><CardContent className="p-4">

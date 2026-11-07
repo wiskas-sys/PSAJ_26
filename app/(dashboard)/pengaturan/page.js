@@ -26,6 +26,7 @@ const DEFAULT_PROFILE = {
     jamOperasional: 'Setiap Hari, 08.30 – 22.00 WIB',
     alamat: 'Jl. Ps. Wage No. 19, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273',
     rekening: 'BCA: 1590676221 a.n. Diyan Purwanti',
+    qrisString: '',
 };
 
 const DEFAULT_PREFS = { 
@@ -273,6 +274,52 @@ export default function Page() {
                                             {saved ? 'Metode Pembayaran Tersimpan!' : 'Simpan Metode Pembayaran'}
                                         </Button>
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="rounded-[17px]">
+                                <CardHeader className="border-b border-border">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <ShieldCheck className="size-4 text-emerald-500"/>Integrasi QRIS Resmi &amp; Rekening BCA
+                                    </CardTitle>
+                                    <CardDescription>Agar aplikasi m-Banking (BCA Mobile, Livin Mandiri, BRImo, DANA, GoPay) dapat scan dan bayar secara nyata.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4 p-5">
+                                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5">
+                                        <p className="text-xs font-bold text-blue-400">Rekening Transfer Bank Resmi Dian Motor</p>
+                                        <p className="font-mono text-base font-extrabold text-foreground mt-0.5">BCA: 1590676221</p>
+                                        <p className="text-xs text-muted-foreground">Atas Nama: <strong className="text-foreground">Diyan Purwanti</strong></p>
+                                    </div>
+
+                                    <Field>
+                                        <FieldLabel htmlFor="set-qris">String Payload QRIS Toko (Opsional / EMVCo)</FieldLabel>
+                                        <Textarea
+                                            id="set-qris"
+                                            value={profile.qrisString || ''}
+                                            onChange={e => setProfile(p => ({ ...p, qrisString: e.target.value.trim() }))}
+                                            placeholder="Contoh: 00020101021126580014ID.LINKAJA.WWW01189360091..."
+                                            rows={3}
+                                            className="font-mono text-xs"
+                                        />
+                                        <p className="text-[11px] text-muted-foreground mt-1">
+                                            💡 Masukkan string teks dari barcode QRIS cetak/stiker resmi Dian Motor (BCA / Nobu / GoPay). Sistem otomatis mengubahnya menjadi QRIS Dinamis ber-nominal pas setiap kali kasir checkout!
+                                        </p>
+                                    </Field>
+
+                                    <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs space-y-1.5">
+                                        <p className="font-bold text-foreground">💡 Mengapa m-Banking muncul notifikasi gagal?</p>
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                            Bank Indonesia mewajibkan QRIS terhubung ke NMID terdaftar di switch nasional (ASPI/BI). Di popup kasir, pelanggan kini dapat langsung menyalin nomor rekening BCA <strong>1590676221</strong> a.n. <strong>Diyan Purwanti</strong> jika ingin transfer kilat tanpa repot scan.
+                                        </p>
+                                    </div>
+
+                                    <Button 
+                                        className="h-10 w-full cursor-pointer bg-primary hover:bg-primary/90 text-white font-bold" 
+                                        onClick={saveSettings}
+                                    >
+                                        {saved ? <Check className="size-4 mr-2" /> : <Save className="size-4 mr-2" />}
+                                        {saved ? 'Konfigurasi QRIS Tersimpan!' : 'Simpan Konfigurasi QRIS'}
+                                    </Button>
                                 </CardContent>
                             </Card>
                         </div>

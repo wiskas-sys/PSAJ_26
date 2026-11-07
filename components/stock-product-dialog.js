@@ -12,7 +12,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/c
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const blank = () => ({ id: '', code: '', name: '', category: '', unit: units[0], purchasePrice: '', sellingPrice: '', stock: '0', minimumStock: '0' });
+const blank = () => ({ id: '', code: '', name: '', category: '', unit: units[0], purchasePrice: '', sellingPrice: '', stock: '0', minimumStock: '0', rack: '' });
 const blankOpening = () => ({ date: todayISO(), reference: '', party: '' });
 
 export function StockProductDialog({ open, onOpenChange, product, onDone }) {
@@ -29,7 +29,7 @@ export function StockProductDialog({ open, onOpenChange, product, onDone }) {
         Promise.all([listStockCategories(), listStockSuppliers()]).then(([cats, vendors]) => {
             setCategories([...new Set([...defaultStockCategories, ...cats.map(category => category.name)])].sort((a, b) => a.localeCompare(b, 'id')));
             setSuppliers(vendors.map(supplier => supplier.name));
-            setDraft(product ? { ...blank(), ...product, purchasePrice: `${product.purchasePrice}`, sellingPrice: `${product.sellingPrice}`, stock: `${product.stock}`, minimumStock: `${product.minimumStock}` } : { ...blank(), category: cats[0]?.name || 'Lainnya' });
+            setDraft(product ? { ...blank(), ...product, purchasePrice: `${product.purchasePrice}`, sellingPrice: `${product.sellingPrice}`, stock: `${product.stock}`, minimumStock: `${product.minimumStock}`, rack: product.rack || '' } : { ...blank(), category: cats[0]?.name || 'Lainnya' });
         }).catch(error => toast.error(error.message || 'Gagal memuat kategori dan supplier.'));
     }, [open, product]);
     const set = (patch) => setDraft(d => ({ ...d, ...patch }));
@@ -70,9 +70,10 @@ export function StockProductDialog({ open, onOpenChange, product, onDone }) {
                     <Field data-invalid={!!errors.name}><FieldLabel htmlFor="pd-name">Nama Barang</FieldLabel><Input id="pd-name" value={draft.name} onChange={e => set({ name: e.target.value })} placeholder="Contoh: Oli Mesin MPX 1 0.8L" className="h-11" aria-invalid={!!errors.name}/><FieldError>{errors.name}</FieldError></Field>
                     <Field data-invalid={!!errors.code}><FieldLabel htmlFor="pd-code">Kode Barang</FieldLabel><div className="flex gap-1.5"><Input id="pd-code" value={draft.code} onChange={e => set({ code: e.target.value.toUpperCase() })} placeholder="OLI-001" className="h-11 font-mono" aria-invalid={!!errors.code}/><Button type="button" variant="outline" size="icon-lg" onClick={async () => { try { set({ code: await suggestStockCode(draft.category) }); } catch (error) { toast.error(error.message); } }} title="Buat kode otomatis"><RefreshCw className="size-4"/></Button></div><FieldError>{errors.code}</FieldError></Field>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                     <Field data-invalid={!!errors.category}><FieldLabel>Kategori</FieldLabel><Select value={draft.category} onValueChange={v => set({ category: v })}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{[...new Set([...categories, draft.category || 'Lainnya'])].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
                     <Field data-invalid={!!errors.unit}><FieldLabel>Satuan</FieldLabel><Select value={draft.unit} onValueChange={v => set({ unit: v })}><SelectTrigger className="h-11 w-full bg-card"><SelectValue/></SelectTrigger><SelectContent><SelectGroup>{units.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
+                    <Field data-invalid={!!errors.rack}><FieldLabel htmlFor="pd-rack">Nomor Rak / Lokasi</FieldLabel><Input id="pd-rack" value={draft.rack || ''} onChange={e => set({ rack: e.target.value })} placeholder="Contoh: Rak A-01" className="h-11 font-semibold" aria-invalid={!!errors.rack}/><FieldError>{errors.rack}</FieldError></Field>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field data-invalid={!!errors.purchasePrice}><FieldLabel htmlFor="pd-buy">Harga Beli</FieldLabel><Input id="pd-buy" type="number" min="0" value={draft.purchasePrice} onChange={e => set({ purchasePrice: e.target.value })} placeholder="47000" className="h-11" aria-invalid={!!errors.purchasePrice}/><FieldError>{errors.purchasePrice}</FieldError></Field>

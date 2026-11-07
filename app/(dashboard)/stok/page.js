@@ -28,8 +28,8 @@ const statusCounts = (list) => ({
 });
 function downloadStockCsv(list) {
     const esc = (v) => `"${`${v}`.replace(/"/g, '""')}"`;
-    const head = ['Kode Barang', 'Nama Barang', 'Kategori', 'Stok', 'Satuan', 'Stok Minimum', 'Harga Beli', 'Harga Jual', 'Status'];
-    const body = list.map(p => [p.code, p.name, p.category, p.stock, p.unit, p.minimumStock, p.purchasePrice, p.sellingPrice, stockStatus(p.stock, p.minimumStock)]);
+    const head = ['Kode Barang', 'Nama Barang', 'Kategori', 'Nomor Rak', 'Stok', 'Satuan', 'Stok Minimum', 'Harga Beli', 'Harga Jual', 'Status'];
+    const body = list.map(p => [p.code, p.name, p.category, p.rack || 'Rak A-01', p.stock, p.unit, p.minimumStock, p.purchasePrice, p.sellingPrice, stockStatus(p.stock, p.minimumStock)]);
     const blob = new Blob([`\uFEFF${[head, ...body].map(r => r.map(esc).join(';')).join('\n')}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -63,7 +63,7 @@ export default function StockPage() {
             .subscribe();
         return () => { supabase.removeChannel(channel); };
     }, [refresh]);
-    const shown = useMemo(() => data.filter(p => `${p.name} ${p.code}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'Semua' || stockStatus(p.stock, p.minimumStock) === filter)), [query, filter, data]);
+    const shown = useMemo(() => data.filter(p => `${p.name} ${p.code} ${p.rack || ''}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'Semua' || stockStatus(p.stock, p.minimumStock) === filter)), [query, filter, data]);
     const counts = statusCounts(data);
     const summary = stockSummary(data);
     const openMovement = (productId, type) => setMovement({ open: true, productId: productId ?? null, type });
@@ -122,51 +122,76 @@ export default function StockPage() {
                     <div className="input-with-icon min-w-0 flex-1"><Search className="size-4"/><Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Cari nama barang atau kode barang..." className="h-10"/></div>
                     <div className="flex gap-1.5 overflow-x-auto">{filters.map(v => <button key={v} type="button" onClick={() => setFilter(v)} className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors ${filter === v ? 'bg-primary text-white' : 'border border-border bg-card text-muted-foreground hover:text-foreground'}`}>{v}{v !== 'Semua' && <span className="rounded-full bg-black/10 px-1.5 font-mono text-[10px] dark:bg-white/10">{counts[v]}</span>}</button>)}</div>
                 </div>
-                <div className="hidden overflow-x-auto md:block"><table className="w-full"><thead><tr className="border-b border-border">{[['Kode Barang', 'left'], ['Nama Barang', 'left'], ['Kategori', 'left'], ['Stok', 'left'], ['Minimum', 'left'], ['Harga Jual', 'right'], ['Status', 'left'], ...(!isOwner ? [['Aksi', 'right']] : [])].map(([h, align]) => <th key={h} className={`px-3.5 py-2.5 font-medium uppercase tracking-wide ${align === 'right' ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr></thead>
-                    <tbody>{shown.map(p => <tr key={p.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
-                        <td className="px-3.5 py-3 font-mono text-xs">{p.code}</td>
-                        <td className="px-3.5 py-3 text-[13px] font-semibold">{p.name}</td>
-                        <td className="px-3.5 py-3 text-[13px] text-muted-foreground">{p.category}</td>
-                        <td className="px-3.5 py-3"><strong className="text-base">{p.stock}</strong> <small className="text-xs text-muted-foreground">{p.unit}</small></td>
-                        <td className="px-3.5 py-3 text-[13px]">{p.minimumStock}</td>
-                        <td className="px-3.5 py-3 text-right text-[13px] font-semibold">{rupiah(p.sellingPrice)}</td>
-                        <td className="px-3.5 py-3"><StockBadge stock={p.stock} minimum={p.minimumStock}/></td>
-                        {!isOwner && <td className="px-3.5 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                                <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 cursor-pointer"
-                                    onClick={() => openMovement(p.id, 'IN')}
-                                    title="Tambah stok barang ini"
-                                >
-                                    <Plus className="size-3.5 mr-1" />
-                                    Tambah Stok
-                                </Button>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent cursor-pointer">
-                                        <MoreHorizontal/><span className="sr-only">Aksi {p.code}</span>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48 p-1.5">
-                                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => openMovement(p.id, 'IN')}>
-                                            <PackagePlus className="size-4 text-emerald-500"/>Tambah Stok Masuk
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setProductForm({ open: true, product: p })}>
-                                            <Pencil className="size-4 text-muted-foreground"/>Ubah Data Barang
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator/>
-                                        <DropdownMenuItem variant="destructive" className="h-9 text-red-500 cursor-pointer" onClick={() => setDeleteTarget(p)}>
-                                            <Trash2 className="size-4 text-red-500"/>Hapus Barang
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </td>}
-                    </tr>)}</tbody></table></div>
-                <div className="grid gap-3 p-3 md:hidden">{shown.map(p => <article key={p.id} className="rounded-xl border border-border p-4">
-                    <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="font-mono text-[10px] text-muted-foreground">{p.code}</p><h2 className="mt-1 text-sm font-semibold">{p.name}</h2></div><span className="part-cell"><span>{p.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</span></span></div>
-                    <div className="mt-3 flex items-center justify-between"><strong>{p.stock} <small className="font-normal text-muted-foreground">{p.unit}</small></strong><StockBadge stock={p.stock} minimum={p.minimumStock}/></div>
-                    <p className="mt-1 text-xs text-muted-foreground">{p.category} · {rupiah(p.sellingPrice)}</p>
+                <div className="hidden overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] md:block border border-border/80 rounded-xl">
+                    <table className="w-full relative">
+                        <thead className="sticky top-0 z-10 bg-card border-b border-border shadow-xs">
+                            <tr>{[['Kode Barang', 'left'], ['Nama Barang', 'left'], ['Kategori', 'left'], ['Nomor Rak', 'left'], ['Stok', 'left'], ['Minimum', 'left'], ['Harga Jual', 'right'], ['Status', 'left'], ...(!isOwner ? [['Aksi', 'right']] : [])].map(([h, align]) => <th key={h} className={`px-3.5 py-3 font-semibold text-xs uppercase tracking-wide bg-card ${align === 'right' ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr>
+                        </thead>
+                        <tbody>{shown.map(p => <tr key={p.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+                            <td className="px-3.5 py-3 font-mono text-xs">{p.code}</td>
+                            <td className="px-3.5 py-3 text-[13px] font-semibold">{p.name}</td>
+                            <td className="px-3.5 py-3 text-[13px] text-muted-foreground">{p.category}</td>
+                            <td className="px-3.5 py-3">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                                    📦 {p.rack || 'Rak A-01'}
+                                </span>
+                            </td>
+                            <td className="px-3.5 py-3"><strong className="text-base">{p.stock}</strong> <small className="text-xs text-muted-foreground">{p.unit}</small></td>
+                            <td className="px-3.5 py-3 text-[13px]">{p.minimumStock}</td>
+                            <td className="px-3.5 py-3 text-right text-[13px] font-semibold">{rupiah(p.sellingPrice)}</td>
+                            <td className="px-3.5 py-3"><StockBadge stock={p.stock} minimum={p.minimumStock}/></td>
+                            {!isOwner && <td className="px-3.5 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/30 cursor-pointer"
+                                        onClick={() => openMovement(p.id, 'IN')}
+                                        title="Tambah stok barang ini"
+                                    >
+                                        <Plus className="size-3.5 mr-1" />
+                                        Tambah Stok
+                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-open:bg-accent cursor-pointer">
+                                            <MoreHorizontal/><span className="sr-only">Aksi {p.code}</span>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-48 p-1.5">
+                                            <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => openMovement(p.id, 'IN')}>
+                                                <PackagePlus className="size-4 text-emerald-500"/>Tambah Stok Masuk
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setProductForm({ open: true, product: p })}>
+                                                <Pencil className="size-4 text-muted-foreground"/>Ubah Data Barang
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator/>
+                                            <DropdownMenuItem variant="destructive" className="h-9 text-red-500 cursor-pointer" onClick={() => setDeleteTarget(p)}>
+                                                <Trash2 className="size-4 text-red-500"/>Hapus Barang
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </td>}
+                        </tr>)}</tbody>
+                    </table>
+                </div>
+                <div className="grid gap-3 p-3 max-h-[calc(100vh-270px)] overflow-y-auto md:hidden">{shown.map(p => <article key={p.id} className="rounded-xl border border-border p-4 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="font-mono text-[10px] text-muted-foreground">{p.code}</p>
+                            <h2 className="mt-1 text-sm font-semibold">{p.name}</h2>
+                        </div>
+                        <span className="part-cell"><span>{p.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}</span></span>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between">
+                        <strong>{p.stock} <small className="font-normal text-muted-foreground">{p.unit}</small></strong>
+                        <StockBadge stock={p.stock} minimum={p.minimumStock}/>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span>{p.category} · {rupiah(p.sellingPrice)}</span>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                            📦 {p.rack || 'Rak A-01'}
+                        </span>
+                    </div>
                     {!isOwner && <div className="mt-3 grid grid-cols-2 gap-2">
                         <Button variant="default" size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold" onClick={() => openMovement(p.id, 'IN')}>
                             <Plus data-icon="inline-start"/>Tambah Stok

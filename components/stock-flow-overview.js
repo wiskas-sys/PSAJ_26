@@ -146,7 +146,7 @@ export function StockFlowOverview({ type }) {
                                 />
                             </div>
                         </div>
-                        <div className="divide-y divide-border">
+                        <div className="divide-y divide-border max-h-[calc(100vh-320px)] overflow-y-auto">
                             {shown.map(m => (
                                 <div key={m.id || m.code} className="flex flex-wrap items-center gap-3 px-3.5 py-3 hover:bg-muted/40 transition-colors">
                                     <span className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${accent}`}>
@@ -205,7 +205,7 @@ export function StockFlowOverview({ type }) {
                                 <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5">
                                     <div className="min-w-0">
                                         <p className="truncate text-[13px] font-semibold">{p.name}</p>
-                                        <p className="font-mono text-[10px] text-muted-foreground">{p.code} · min {p.minimumStock} {p.unit}</p>
+                                        <p className="font-mono text-[10px] text-muted-foreground">{p.code} · min {p.minimumStock} {p.unit} · <span className="text-amber-500 font-bold">{p.rack || 'Rak A-01'}</span></p>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
                                         <strong className="text-[13px]">{p.stock} <small className="font-normal text-muted-foreground">{p.unit}</small></strong>

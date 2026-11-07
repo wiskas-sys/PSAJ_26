@@ -64,7 +64,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5">
+    <header className="sticky top-0 z-50 w-full px-3 pt-3 sm:px-5">
       <div
         className={cn(
           "mx-auto w-full max-w-6xl rounded-full border border-border bg-card/90 backdrop-blur-md transition-shadow duration-200",
