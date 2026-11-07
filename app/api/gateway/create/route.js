@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateQrisDataUrl, generateUniqueNominal } from '@/lib/qris';
+import { generateQrisDataUrl, generateUniqueNominal, OFFICIAL_DIAN_MOTOR_QRIS } from '@/lib/qris';
 import { createCoreQris, isMidtransConfigured } from '@/lib/midtrans';
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -21,6 +21,7 @@ export async function POST(request) {
 
     let qrisString = '';
     let qrisDataUrl = '';
+    let staticQrisDataUrl = '';
     let isMidtrans = false;
     let isOfficialQris = false;
 
@@ -42,6 +43,7 @@ export async function POST(request) {
               staticQris: midtransRes.qrString,
             });
             qrisDataUrl = gen.dataUrl;
+            staticQrisDataUrl = gen.staticDataUrl;
           } else if (midtransRes.qrCodeUrl) {
             qrisDataUrl = midtransRes.qrCodeUrl;
           }
@@ -51,17 +53,15 @@ export async function POST(request) {
       }
     }
 
-    // 3. Jika belum ada dari Midtrans, cek string QRIS resmi toko Dian Motor
+    // 3. String QRIS resmi toko Dian Motor (Bank BCA / NMID ID1024353680076)
     const activeStoreQris =
       requestedStoreQris ||
       process.env.STORE_QRIS_STRING ||
       process.env.NEXT_PUBLIC_STORE_QRIS_STRING ||
-      null;
+      OFFICIAL_DIAN_MOTOR_QRIS;
 
     if (!qrisDataUrl) {
-      if (activeStoreQris) {
-        isOfficialQris = true;
-      }
+      isOfficialQris = true;
       const gen = await generateQrisDataUrl({
         amount: totalAmount,
         orderId,
@@ -69,6 +69,7 @@ export async function POST(request) {
       });
       qrisString = gen.qrisString;
       qrisDataUrl = gen.dataUrl;
+      staticQrisDataUrl = gen.staticDataUrl;
     }
 
     // 4. Simpan pembayaran berstatus pending ke database Supabase
@@ -80,7 +81,7 @@ export async function POST(request) {
           amount: totalAmount,
           customer_name: customer?.name || customer?.first_name || 'Pelanggan Umum',
           payment_type: 'qris',
-          method: isMidtrans ? 'Midtrans QRIS' : isOfficialQris ? 'QRIS Toko Dian Motor' : 'QRIS Dinamis',
+          method: isMidtrans ? 'Midtrans QRIS' : 'QRIS Resmi Dian Motor',
           status: 'pending',
           payload: {
             baseAmount,
@@ -88,7 +89,9 @@ export async function POST(request) {
             totalAmount,
             items: items || [],
             isMidtrans,
-            isOfficialQris,
+            isOfficialQris: true,
+            nmid: 'ID1024353680076',
+            merchant: 'DIAN MOTOR',
           },
         },
         { onConflict: 'order_id' }
@@ -110,9 +113,13 @@ export async function POST(request) {
       totalAmount,
       qrisString,
       qrisDataUrl,
+      staticQrisDataUrl: staticQrisDataUrl || qrisDataUrl,
       payUrl,
       isMidtrans,
-      isOfficialQris,
+      isOfficialQris: true,
+      merchantName: 'DIAN MOTOR',
+      nmid: 'ID1024353680076',
+      city: 'BREBES',
       bankAccount: '1590676221',
       bankHolder: 'Diyan Purwanti',
     });

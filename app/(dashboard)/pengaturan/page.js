@@ -20,13 +20,15 @@ const tabCls = 'h-9 rounded-lg px-3.5 text-xs font-semibold data-active:bg-prima
 
 const SETTINGS_STORAGE_KEY = 'dian_motor_system_settings';
 
+const OFFICIAL_QRIS_STRING = '00020101021126650013ID.CO.BCA.WWW011893600014000261346802150008850026134680303UKE51440014ID.CO.QRIS.WWW0215ID10243536800760303UKE5204753853033605802ID5910DIAN MOTOR6006BREBES61055227362070703A016304DF54';
+
 const DEFAULT_PROFILE = {
     nama: 'DIAN MOTOR',
     telepon: '+62 823-1388-9969',
     jamOperasional: 'Setiap Hari, 08.30 – 22.00 WIB',
     alamat: 'Jl. Ps. Wage No. 19, RT.05/RW.04, Krajan, Jatisawit, Kec. Bumiayu, Kabupaten Brebes, Jawa Tengah 52273',
     rekening: 'BCA: 1590676221 a.n. Diyan Purwanti',
-    qrisString: '',
+    qrisString: OFFICIAL_QRIS_STRING,
 };
 
 const DEFAULT_PREFS = { 

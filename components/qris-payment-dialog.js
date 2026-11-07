@@ -45,6 +45,8 @@ export function QrisPaymentDialog({
   const [loading, setLoading] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [qrisDataUrl, setQrisDataUrl] = useState('');
+  const [staticQrisDataUrl, setStaticQrisDataUrl] = useState('');
+  const [qrMode, setQrMode] = useState('dynamic'); // 'dynamic' | 'stand'
   const [totalAmount, setTotalAmount] = useState(0);
   const [uniqueCode, setUniqueCode] = useState(0);
   const [payUrl, setPayUrl] = useState('');
@@ -107,6 +109,7 @@ export function QrisPaymentDialog({
         if (res.ok && data.success) {
           setOrderId(data.orderId);
           setQrisDataUrl(data.qrisDataUrl);
+          setStaticQrisDataUrl(data.staticQrisDataUrl || data.qrisDataUrl || '');
           setTotalAmount(data.totalAmount);
           setUniqueCode(data.uniqueCode);
           setPayUrl(data.payUrl);
@@ -320,11 +323,37 @@ export function QrisPaymentDialog({
         ) : (
           /* Tampilan QR Code Aktif */
           <div className="space-y-3.5">
+            {/* Mode Switcher */}
+            <div className="flex items-center justify-center p-1 rounded-xl bg-neutral-900 border border-neutral-800 text-[11px] gap-1">
+              <button
+                type="button"
+                onClick={() => setQrMode('dynamic')}
+                className={`flex-1 py-1.5 px-2.5 rounded-lg font-bold transition-all text-center cursor-pointer ${
+                  qrMode === 'dynamic'
+                    ? 'bg-red-600 text-white shadow'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                QRIS Nominal Pas
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrMode('stand')}
+                className={`flex-1 py-1.5 px-2.5 rounded-lg font-bold transition-all text-center cursor-pointer ${
+                  qrMode === 'stand'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                QRIS Stand Toko (Resmi)
+              </button>
+            </div>
+
             {/* Box QR Code */}
             <div className="relative mx-auto flex w-fit flex-col items-center justify-center rounded-2xl bg-white p-3 shadow-lg">
-              {qrisDataUrl ? (
+              {(qrMode === 'dynamic' ? qrisDataUrl : (staticQrisDataUrl || qrisDataUrl)) ? (
                 <img
-                  src={qrisDataUrl}
+                  src={qrMode === 'dynamic' ? qrisDataUrl : (staticQrisDataUrl || qrisDataUrl)}
                   alt="QRIS Dian Motor"
                   className="size-52 object-contain rounded-lg"
                 />
@@ -333,14 +362,16 @@ export function QrisPaymentDialog({
                   <QrCode className="size-16" />
                 </div>
               )}
-              <div className="mt-1.5 flex items-center gap-1 font-mono text-[10px] font-bold text-neutral-800">
-                <ShieldCheck className="size-3 text-red-600" />
-                <span>
-                  {isMidtrans
-                    ? 'Midtrans Snap QRIS · Resmi Bank Indonesia'
-                    : isOfficialQris
-                    ? 'QRIS Toko Resmi Terhubung'
-                    : 'Standar EMVCo ASPI · Rekening Diyan Purwanti'}
+              <div className="mt-2 flex flex-col items-center text-center font-mono text-[10px] text-neutral-800">
+                <div className="flex items-center gap-1 font-black">
+                  <ShieldCheck className="size-3.5 text-red-600" />
+                  <span>DIAN MOTOR · BREBES</span>
+                </div>
+                <span className="text-[9px] text-neutral-500 font-medium">
+                  NMID: ID1024353680076 · A01 (BCA GPN ASPI)
+                </span>
+                <span className="text-[9px] text-neutral-400">
+                  {qrMode === 'dynamic' ? '✓ Nominal otomatis terisi saat discan' : '✓ Scan barcode fisik stand toko resmi'}
                 </span>
               </div>
             </div>
