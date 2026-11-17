@@ -515,35 +515,47 @@ export default function PosPage() {
         <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3 max-h-[calc(100vh-270px)] overflow-y-auto pr-1">
           {shown.map(p => <article key={p.id} className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/40">
             <div className="flex items-center justify-between gap-2">
-              <span className="grid size-9 place-items-center rounded-[10px] bg-muted font-mono text-[11px] font-extrabold text-primary">{initials(p.name)}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/25">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-muted font-mono text-[11px] font-extrabold text-primary">{initials(p.name)}</span>
+                <span className="font-mono text-[11px] font-medium text-muted-foreground truncate">{p.code}</span>
+              </div>
+              <StockChip stock={p.stock} minimum={p.minimumStock}/>
+            </div>
+
+            <div className="my-2.5">
+              <h2 className="text-sm font-bold leading-snug line-clamp-2 min-h-[2.5rem]" title={p.name}>{p.name}</h2>
+              <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span className="truncate">{p.category} · {p.unit}</span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/25">
                   📦 {p.rack || 'Rak A-01'}
                 </span>
-                <StockChip stock={p.stock} minimum={p.minimumStock}/>
               </div>
             </div>
-            <p className="mt-3 font-mono text-[10px] text-muted-foreground">{p.code}</p>
-            <h2 className="mt-0.5 text-[15px] leading-snug font-semibold">{p.name}</h2>
-            <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>{p.category} · {p.unit}</span>
-              <span className="font-semibold text-amber-600 dark:text-amber-400 font-mono text-[10px]">{p.rack || 'Rak A-01'}</span>
-            </div>
-            <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-              <strong className="text-[15px]">{rupiah(p.sellingPrice)}</strong>
-              <div className="flex items-center gap-1.5">
+
+            <div className="mt-auto pt-3 border-t border-border/60">
+              <div className="flex items-baseline justify-between mb-2.5">
+                <span className="text-[11px] font-medium text-muted-foreground">Harga Jual</span>
+                <strong className="text-base font-extrabold text-foreground">{rupiah(p.sellingPrice)}</strong>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
                 <Button 
                   size="sm" 
                   variant="outline" 
                   onClick={() => openEditStock(p)} 
-                  className="h-8 px-2.5 text-[11px] font-semibold border-border hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer" 
+                  className="h-8.5 w-full px-2 text-xs font-medium border-border hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shadow-none" 
                   title="Koreksi / Edit Stok Produk"
                 >
-                  <Edit3 className="size-3 mr-1" />
+                  <Edit3 className="size-3.5 mr-1 shrink-0" />
                   Edit Stok
                 </Button>
-                <Button size="sm" onClick={() => add(p)} disabled={p.stock === 0} className="h-8 cursor-pointer">
-                  <Plus data-icon="inline-start"/>Tambah
+                <Button 
+                  size="sm" 
+                  onClick={() => add(p)} 
+                  disabled={p.stock === 0} 
+                  className="h-8.5 w-full px-2 text-xs font-semibold cursor-pointer shadow-xs"
+                >
+                  <Plus className="size-3.5 mr-1 shrink-0" />
+                  Tambah
                 </Button>
               </div>
             </div>

@@ -62,12 +62,32 @@ function useMounted() {
 }
 
 function LiveClock() {
+    const mounted = useMounted();
     const [now, setNow] = useState(() => new Date());
     useEffect(() => {
         const t = setInterval(() => setNow(new Date()), 30000);
         return () => clearInterval(t);
     }, []);
-    return <time className="hidden font-mono text-[11px] text-muted-foreground md:block">{now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} · {now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</time>;
+    if (!mounted) {
+        return (
+            <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border/80 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground shadow-2xs lg:ml-2 opacity-0">
+                <Clock3 className="size-3.5 text-primary shrink-0" />
+                <time className="font-medium whitespace-nowrap">-- WIB</time>
+            </div>
+        );
+    }
+    const dayName = now.toLocaleDateString('id-ID', { weekday: 'long' });
+    const dateFormatted = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    const timeFormatted = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    return (
+        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border/80 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground shadow-2xs lg:ml-2">
+            <Clock3 className="size-3.5 text-primary shrink-0" />
+            <time className="font-medium whitespace-nowrap">
+                <span className="font-semibold text-foreground capitalize">{dayName}</span>, {dateFormatted} <span className="text-muted-foreground/60 mx-1">·</span> <span className="font-mono">{timeFormatted} WIB</span>
+            </time>
+        </div>
+    );
 }
 
 function ThemeToggle({ className }) {
@@ -146,37 +166,41 @@ function AppShellInternal({ children, user }) {
     </aside>
     {open && <button type="button" aria-label="Tutup navigasi" onClick={() => setOpen(false)} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"/>}
     <div className="relative z-10 min-w-0 flex flex-col lg:h-screen lg:overflow-hidden lg:col-start-2">
-      <header className="shrink-0 sticky top-0 z-30 flex min-h-[64px] sm:min-h-[76px] items-center gap-2.5 sm:gap-3 border-b border-border bg-background/90 px-3 sm:px-5 backdrop-blur-xl">
-        <button type="button" onClick={() => setOpen(true)} className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground lg:hidden cursor-pointer" aria-label="Buka navigasi"><Menu className="size-4"/></button>
-        <LiveClock />
-        <Link href="/notifikasi" className="relative grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground" aria-label="Notifikasi"><Bell className="size-4"/>{unread > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-[17px] place-items-center rounded-full bg-primary text-[9px] font-bold text-white">{unread}</span>}</Link>
-        <ThemeToggle className="size-9 sm:size-10 shrink-0"/>
-        <div className="ml-auto"/>
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex shrink-0 items-center gap-2 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted cursor-pointer">
-            <span className={cn("grid size-8 sm:size-9 place-items-center rounded-full text-[11px] font-extrabold text-white shadow-sm", isOwner ? "bg-amber-600" : "bg-primary")}>{initials}</span>
-            <span className="hidden max-w-[170px] xl:block">
-                <strong className="block truncate text-[13px]">{name}</strong>
-                <small className="block truncate text-[10px] text-muted-foreground font-medium">{roleLabel}</small>
-            </span>
-            <ChevronDown className="hidden size-3.5 text-muted-foreground xl:block"/>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 p-1.5" align="end" sideOffset={10}>
-            <DropdownMenuLabel className="pb-2">
-                <div className="text-xs font-bold">{name}</div>
-                <div className="text-[10px] text-muted-foreground">{roleLabel}</div>
-            </DropdownMenuLabel>
-            {isOwner && (
-                <>
-                    <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => router.push('/pengaturan')}><Settings className="size-4 text-muted-foreground mr-2"/>Pengaturan Sistem</DropdownMenuItem>
-                    <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => router.push('/pengguna')}><Users className="size-4 text-muted-foreground mr-2"/>Kelola Akun &amp; Peran</DropdownMenuItem>
-                </>
-            )}
-            <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setHelpOpen(true)}><HelpCircle className="size-4 text-muted-foreground mr-2"/>Bantuan shortcut</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <SignOutItem />
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <header className="shrink-0 sticky top-0 z-30 flex min-h-[64px] sm:min-h-[76px] items-center justify-between border-b border-border bg-background/90 px-3.5 sm:px-6 backdrop-blur-xl">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <button type="button" onClick={() => setOpen(true)} className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground lg:hidden cursor-pointer" aria-label="Buka navigasi"><Menu className="size-4"/></button>
+          <LiveClock />
+        </div>
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <Link href="/notifikasi" className="relative grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:text-foreground" aria-label="Notifikasi"><Bell className="size-4"/>{unread > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-[17px] place-items-center rounded-full bg-primary text-[9px] font-bold text-white">{unread}</span>}</Link>
+          <ThemeToggle className="size-9 sm:size-10 shrink-0"/>
+          <div className="h-6 w-px bg-border/60 mx-1 hidden sm:block" />
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex shrink-0 items-center gap-2 rounded-xl p-1 pr-2 text-left transition-colors hover:bg-muted cursor-pointer">
+              <span className={cn("grid size-8 sm:size-9 place-items-center rounded-full text-[11px] font-extrabold text-white shadow-sm", isOwner ? "bg-amber-600" : "bg-primary")}>{initials}</span>
+              <span className="hidden max-w-[170px] xl:block">
+                  <strong className="block truncate text-[13px]">{name}</strong>
+                  <small className="block truncate text-[10px] text-muted-foreground font-medium">{roleLabel}</small>
+              </span>
+              <ChevronDown className="hidden size-3.5 text-muted-foreground xl:block"/>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 p-1.5" align="end" sideOffset={10}>
+              <DropdownMenuLabel className="pb-2">
+                  <div className="text-xs font-bold">{name}</div>
+                  <div className="text-[10px] text-muted-foreground">{roleLabel}</div>
+              </DropdownMenuLabel>
+              {isOwner && (
+                  <>
+                      <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => router.push('/pengaturan')}><Settings className="size-4 text-muted-foreground mr-2"/>Pengaturan Sistem</DropdownMenuItem>
+                      <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => router.push('/pengguna')}><Users className="size-4 text-muted-foreground mr-2"/>Kelola Akun &amp; Peran</DropdownMenuItem>
+                  </>
+              )}
+              <DropdownMenuItem className="h-9 cursor-pointer" onClick={() => setHelpOpen(true)}><HelpCircle className="size-4 text-muted-foreground mr-2"/>Bantuan shortcut</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <SignOutItem />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}><DialogContent><DialogHeader><DialogTitle>Bantuan Shortcut</DialogTitle><DialogDescription>Percepat operasional harian dengan pintasan ini.</DialogDescription></DialogHeader><div className="grid gap-2">{[['/kasir', 'Buka halaman Kasir'], ['/stok', 'Buka Cek Stok'], ['/transaksi', 'Buka riwayat Transaksi'], ['/servis', 'Buka papan Servis']].map(([k, v]) => <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span className="text-muted-foreground">{v}</span><kbd>{k}</kbd></div>)}</div></DialogContent></Dialog>
       <nav className="shrink-0 sticky top-[64px] sm:top-[76px] z-20 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border bg-background/95 px-3 py-2 backdrop-blur-xl lg:hidden" aria-label="Navigasi cepat">{mobileNavItems.map(([l, href]) => <Link key={href} href={href} className={cn('flex h-8 sm:h-9 shrink-0 items-center rounded-lg px-3 text-xs font-semibold transition-colors', pathname === href ? 'bg-primary text-white shadow-xs' : 'bg-muted text-muted-foreground hover:text-foreground')}>{l}</Link>)}</nav>
