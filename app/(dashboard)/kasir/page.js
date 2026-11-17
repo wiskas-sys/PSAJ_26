@@ -1,11 +1,11 @@
 'use client';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, CreditCard, Check, Minus, Plus, Search, ShoppingCart, Trash2, TriangleAlert, Wrench } from 'lucide-react';
+import { CheckCircle2, CreditCard, Check, Minus, Plus, Search, ShoppingCart, Trash2, TriangleAlert, Wrench, Edit3, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import { rupiah, todayISO } from '@/lib/demo-data';
 import { formatThousands, parseThousands } from '@/lib/money-format';
-import { checkoutStockSale, listStockCustomers, listStockProducts } from '@/lib/supabase/stock-products';
+import { checkoutStockSale, listStockCustomers, listStockProducts, quickUpdateProductStock } from '@/lib/supabase/stock-products';
 import { recordMovement } from '@/lib/stock-store';
 import { createClient } from '@/lib/supabase/client';
 import { PageHeader } from '@/components/page-header';
@@ -77,6 +77,61 @@ export default function PosPage() {
     const [serviceBusy, setServiceBusy] = useState(false);
     const [serviceReceipt, setServiceReceipt] = useState(null);
     const [serviceQrisOpen, setServiceQrisOpen] = useState(false);
+
+    // State untuk fitur Edit Stok langsung dari kasir
+    const [editStockOpen, setEditStockOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState(null);
+    const [editStockDraft, setEditStockDraft] = useState({ stock: 0, rack: '', sellingPrice: 0, minimumStock: 5, reason: '' });
+    const [savingStock, setSavingStock] = useState(false);
+
+    function openEditStock(product) {
+        setEditingProduct(product);
+        setEditStockDraft({
+            stock: product.stock ?? 0,
+            rack: product.rack || '',
+            sellingPrice: product.sellingPrice || 0,
+            minimumStock: product.minimumStock || 5,
+            reason: '',
+        });
+        setEditStockOpen(true);
+    }
+
+    async function handleSaveQuickStock() {
+        if (!editingProduct) return;
+        const newStock = Math.max(0, Math.trunc(Number(editStockDraft.stock || 0)));
+        const newRack = editStockDraft.rack?.trim() || '';
+        const newPrice = Math.max(0, Number(editStockDraft.sellingPrice || editingProduct.sellingPrice));
+        const reason = editStockDraft.reason?.trim() || `Koreksi stok langsung dari kasir (${editingProduct.stock} -> ${newStock} pcs)`;
+
+        setSavingStock(true);
+        try {
+            // 1. Optimistic catalog update: langsung ubah di state memori kasir (0 ms delay)
+            setCatalog(prev => prev.map(p => p.id === editingProduct.id ? {
+                ...p,
+                stock: newStock,
+                rack: newRack || p.rack,
+                sellingPrice: newPrice,
+            } : p));
+
+            // 2. Simpan perubahan ke database Supabase
+            await quickUpdateProductStock({
+                id: editingProduct.id,
+                stock: newStock,
+                rack: newRack,
+                sellingPrice: newPrice,
+                reason,
+            });
+
+            toast.success(`Stok ${editingProduct.name} berhasil diperbarui menjadi ${newStock} ${editingProduct.unit}!`);
+            setEditStockOpen(false);
+            setEditingProduct(null);
+        } catch (err) {
+            toast.error(err.message || 'Gagal menyimpan penyesuaian stok.');
+        } finally {
+            setSavingStock(false);
+        }
+    }
+
     const committedRef = useRef(new Set());
     const idempotencyRef = useRef(new Map());
     const categories = useMemo(() => ['Semua', ...new Set(catalog.map(p => p.category).filter(Boolean))], [catalog]);
@@ -476,7 +531,21 @@ export default function PosPage() {
             </div>
             <div className="mt-auto flex items-center justify-between gap-2 pt-4">
               <strong className="text-[15px]">{rupiah(p.sellingPrice)}</strong>
-              <Button size="sm" onClick={() => add(p)} disabled={p.stock === 0}><Plus data-icon="inline-start"/>Tambah</Button>
+              <div className="flex items-center gap-1.5">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => openEditStock(p)} 
+                  className="h-8 px-2.5 text-[11px] font-semibold border-border hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer" 
+                  title="Koreksi / Edit Stok Produk"
+                >
+                  <Edit3 className="size-3 mr-1" />
+                  Edit Stok
+                </Button>
+                <Button size="sm" onClick={() => add(p)} disabled={p.stock === 0} className="h-8 cursor-pointer">
+                  <Plus data-icon="inline-start"/>Tambah
+                </Button>
+              </div>
             </div>
           </article>)}
           {!shown.length && <div className="grid h-48 col-span-full place-items-center rounded-2xl border border-dashed border-border text-sm text-muted-foreground">Tidak ada produk yang cocok dengan pencarian.</div>}
@@ -766,6 +835,151 @@ export default function PosPage() {
             }}
         />
     )}
+
+    {/* Modal Edit / Koreksi Stok untuk Kasir */}
+    <Dialog open={editStockOpen} onOpenChange={setEditStockOpen}>
+      <DialogContent className="sm:max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl">
+        <DialogHeader>
+          <div className="flex items-center gap-2.5">
+            <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
+              <Edit3 className="size-4" />
+            </span>
+            <div>
+              <DialogTitle className="text-base font-bold">Edit / Koreksi Stok Barang</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Sesuaikan stok fisik toko atau ubah lokasi rak barang langsung dari kasir.
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {editingProduct && (
+          <div className="space-y-4 pt-1">
+            {/* Ringkasan Barang */}
+            <div className="rounded-xl border border-border/70 bg-muted/40 p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] font-bold text-muted-foreground">
+                  {editingProduct.code}
+                </span>
+                <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  {editingProduct.category}
+                </span>
+              </div>
+              <p className="mt-1 text-sm font-bold text-foreground leading-snug">
+                {editingProduct.name}
+              </p>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
+                <span>Stok saat ini di sistem:</span>
+                <strong className="text-foreground font-mono">{editingProduct.stock} {editingProduct.unit}</strong>
+              </div>
+            </div>
+
+            {/* Stepper & Input Jumlah Stok */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1.5">
+                Jumlah Stok Fisik Toko ({editingProduct.unit})
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditStockDraft(d => ({ ...d, stock: Math.max(0, Number(d.stock || 0) - 1) }))}
+                  className="grid size-11 place-items-center rounded-xl border border-border bg-muted hover:bg-muted/80 text-foreground font-bold cursor-pointer transition-colors"
+                  aria-label="Kurangi stok"
+                >
+                  <Minus className="size-4" />
+                </button>
+                <input
+                  type="number"
+                  min="0"
+                  value={editStockDraft.stock}
+                  onChange={e => setEditStockDraft(d => ({ ...d, stock: e.target.value }))}
+                  className="h-11 flex-1 rounded-xl border border-border bg-background px-3 text-center text-lg font-mono font-bold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setEditStockDraft(d => ({ ...d, stock: Number(d.stock || 0) + 1 }))}
+                  className="grid size-11 place-items-center rounded-xl border border-border bg-muted hover:bg-muted/80 text-foreground font-bold cursor-pointer transition-colors"
+                  aria-label="Tambah stok"
+                >
+                  <Plus className="size-4" />
+                </button>
+              </div>
+              {Number(editStockDraft.stock) !== Number(editingProduct.stock) && (
+                <p className="mt-1.5 text-[11px] font-semibold text-amber-500 flex items-center gap-1">
+                  <span>⚡ Selisih:</span>
+                  <span className="font-mono">
+                    {Number(editStockDraft.stock) > Number(editingProduct.stock) ? '+' : ''}
+                    {Number(editStockDraft.stock) - Number(editingProduct.stock)} {editingProduct.unit}
+                  </span>
+                </p>
+              )}
+            </div>
+
+            {/* Nomor Rak & Harga Jual */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Nomor Rak / Lokasi
+                </label>
+                <input
+                  type="text"
+                  value={editStockDraft.rack}
+                  onChange={e => setEditStockDraft(d => ({ ...d, rack: e.target.value }))}
+                  placeholder="Contoh: Rak A-01"
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 font-mono text-xs font-semibold text-foreground outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Harga Jual (Rp)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editStockDraft.sellingPrice}
+                  onChange={e => setEditStockDraft(d => ({ ...d, sellingPrice: e.target.value }))}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 font-mono text-xs font-semibold text-foreground outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            {/* Alasan Koreksi */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1">
+                Catatan / Alasan Penyesuaian (Opsional)
+              </label>
+              <input
+                type="text"
+                value={editStockDraft.reason}
+                onChange={e => setEditStockDraft(d => ({ ...d, reason: e.target.value }))}
+                placeholder="Contoh: Koreksi stok fisik / salah hitung"
+                className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs text-foreground outline-none focus:border-primary"
+              />
+            </div>
+
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditStockOpen(false)}
+                disabled={savingStock}
+                className="h-10 cursor-pointer text-xs"
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveQuickStock}
+                disabled={savingStock}
+                className="h-10 bg-primary hover:bg-primary/90 text-white font-bold cursor-pointer text-xs"
+              >
+                {savingStock ? 'Menyimpan...' : 'Simpan Perubahan Stok'}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
 
     {/* Floating Mobile Cart Bar (xl:hidden) saat keranjang terisi */}
     {cart.length > 0 && (

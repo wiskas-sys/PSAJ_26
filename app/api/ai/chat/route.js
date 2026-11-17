@@ -193,9 +193,10 @@ export async function POST(request) {
 
       const modelsToTry = [
         process.env.GEMINI_MODEL,
-        "gemini-3.8-flash",
+        "gemini-2.5-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
+        "gemini-1.5-flash",
       ].filter(Boolean);
 
       let responseText = null;
@@ -208,7 +209,12 @@ export async function POST(request) {
             tools: geminiTools.length > 0 ? geminiTools : undefined,
           });
 
-          const result = await model.generateContent({ contents });
+          const generatePromise = model.generateContent({ contents });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout Gemini Chat (>2.5s)")), 2500)
+          );
+
+          const result = await Promise.race([generatePromise, timeoutPromise]);
           const response = result.response;
           const functionCalls = response.functionCalls();
 
@@ -226,7 +232,8 @@ export async function POST(request) {
               parts: [{ functionResponse: { name: call.name, response: { result: output } } }],
             });
 
-            const finalResult = await model.generateContent({ contents });
+            const finalPromise = model.generateContent({ contents });
+            const finalResult = await Promise.race([finalPromise, timeoutPromise]);
             responseText = finalResult.response.text();
           } else {
             responseText = response.text();
@@ -235,6 +242,7 @@ export async function POST(request) {
           if (responseText) break;
         } catch (err) {
           console.warn(`Model ${modelName} gagal: ${err.message}`);
+          break; // Segera fallback ke jawaban lokal yang cepat & akurat
         }
       }
 

@@ -7,9 +7,14 @@ const QUICK_PROMPTS = [
   "stok mana yg masih ada?",
   "brg apa yg abis?",
   "stok menipis apa aja?",
+  "rekomendasi kulakan apa?",
   "rekap stok",
-  "oli mn?",
+  "oli ditaruh di rak mana?",
+  "baut mur ada ngga?",
   "busi ad ga?",
+  "stok paling banyak apa?",
+  "kampas rem ana ra?",
+  "regane oli mpx piro?",
 ];
 
 export default function AiChatWidget({ userRole = 'kasir' }) {

@@ -3,11 +3,12 @@ import { diagnoseMotorComplaint, detectLanguage } from "@/lib/ai/diagnostic-engi
 import { searchProducts } from "@/lib/ai/stock-data";
 
 const CANDIDATE_MODELS = [
-  "gemini-3.5-flash",
-  "gemini-flash-latest",
+  process.env.GEMINI_DIAGNOSA_MODEL,
   "gemini-2.5-flash-lite",
-  "gemini-3.8-flash",
-];
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+].filter(Boolean);
 
 export async function POST(request) {
   try {
@@ -22,10 +23,9 @@ export async function POST(request) {
       return Response.json({ error: "Pesan tidak boleh kosong." }, { status: 400 });
     }
 
-    // 1. Ekstrak data stok nyata bengkel Dian Motor untuk membantu jawaban AI
+    // 1. Ekstrak data stok nyata bengkel Dian Motor untuk membantu jawaban AI (Max 500ms timeout)
     let stockContext = "";
     try {
-      // Ambil kata kunci sederhana dari pesan terakhir
       const words = lastUserMsg
         .toLowerCase()
         .replace(/[^\w\s]/g, "")
@@ -33,7 +33,10 @@ export async function POST(request) {
         .filter((w) => w.length >= 3 && !["apa", "yang", "ini", "itu", "kira", "kue", "bae", "bakal"].includes(w));
       
       const searchKey = words.slice(0, 2).join(" ") || "oli";
-      const products = await searchProducts(searchKey);
+      const stockSearchPromise = searchProducts(searchKey);
+      const stockTimeout = new Promise((resolve) => setTimeout(() => resolve([]), 500));
+      const products = await Promise.race([stockSearchPromise, stockTimeout]);
+
       if (products && products.length > 0) {
         const top = products.slice(0, 3);
         stockContext = top
@@ -47,7 +50,7 @@ export async function POST(request) {
       console.warn("Stock search error in API diagnosa:", e?.message);
     }
 
-    // 2. Coba gunakan Gemini AI jika API key tersedia
+    // 2. Coba gunakan Gemini AI jika API key tersedia dengan strict timeout 2.5 detik
     const apiKey = (process.env.GEMINI_API_KEY || "").trim();
     if (apiKey && apiKey.length > 10) {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -96,10 +99,15 @@ ${stockContext || "Data stok dapat dicek langsung saat pemeriksaan fisik di beng
             systemInstruction: systemPrompt,
           });
 
-          const result = await model.generateContent({
+          // Timeout 2500ms agar respon selalu super cepat
+          const generatePromise = model.generateContent({
             contents: validContents,
           });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Gemini timeout (>2.5s)")), 2500)
+          );
 
+          const result = await Promise.race([generatePromise, timeoutPromise]);
           const reply = result?.response?.text();
           if (reply && reply.trim()) {
             return Response.json({
@@ -109,12 +117,13 @@ ${stockContext || "Data stok dapat dicek langsung saat pemeriksaan fisik di beng
             });
           }
         } catch (err) {
-          console.warn(`Model ${modelName} error:`, err?.message?.slice(0, 80));
+          console.warn(`Model ${modelName} error/timeout:`, err?.message?.slice(0, 80));
+          break; // Segera lanjut ke engine lokal tanpa buang waktu berputar di model lain
         }
       }
     }
 
-    // 3. Fallback cerdas ke engine lokal jika Gemini sedang sibuk atau offline
+    // 3. Fallback instan & akurat ke engine lokal jika Gemini lambat atau offline (< 20ms)
     const localDiagnosis = await diagnoseMotorComplaint(lastUserMsg);
     return Response.json({
       reply: localDiagnosis.reply,
