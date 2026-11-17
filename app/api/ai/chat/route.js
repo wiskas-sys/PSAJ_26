@@ -193,10 +193,9 @@ export async function POST(request) {
 
       const modelsToTry = [
         process.env.GEMINI_MODEL,
-        "gemini-2.5-flash-lite",
-        "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
+        "gemini-2.0-flash-lite-preview-02-05",
       ].filter(Boolean);
 
       let responseText = null;
@@ -211,7 +210,7 @@ export async function POST(request) {
 
           const generatePromise = model.generateContent({ contents });
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout Gemini Chat (>2.5s)")), 2500)
+            setTimeout(() => reject(new Error("Timeout Gemini Chat (>4.5s)")), 4500)
           );
 
           const result = await Promise.race([generatePromise, timeoutPromise]);
@@ -242,7 +241,7 @@ export async function POST(request) {
           if (responseText) break;
         } catch (err) {
           console.warn(`Model ${modelName} gagal: ${err.message}`);
-          break; // Segera fallback ke jawaban lokal yang cepat & akurat
+          continue; // Coba model berikutnya
         }
       }
 

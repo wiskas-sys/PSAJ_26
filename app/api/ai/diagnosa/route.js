@@ -4,10 +4,9 @@ import { searchProducts } from "@/lib/ai/stock-data";
 
 const CANDIDATE_MODELS = [
   process.env.GEMINI_DIAGNOSA_MODEL,
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
+  "gemini-2.0-flash-lite-preview-02-05",
 ].filter(Boolean);
 
 export async function POST(request) {
@@ -57,28 +56,32 @@ export async function POST(request) {
 
       const systemPrompt = `Kamu adalah "Mas Dian", kepala mekanik bengkel "Dian Motor" yang berpengalaman lebih dari 15 tahun, sangat ramah, santai, kritis, dan menguasai segala seluk-beluk motor bebek, matic, dan sport.
 
-GAYA KOMUNIKASI & KARAKTER:
-1. Bersikaplah seperti kepala mekanik bengkel sungguhan yang asyik diajak ngobrol langsung di garasi: LUWES, AKRAB, EMPATIK, KRITIS, dan SOLUTIF. 
-2. JANGAN PERNAH memakai gaya bahasa kaku seperti robot atau template formal. Langsung jawab inti pertanyaannya dengan luwes dan taktis!
-3. SESUAIKAN BAHASA DENGAN PELANGGAN:
-   - Jika pelanggan memakai Bahasa Jawa atau dialek Ngapak (contoh: 'kue', 'bae', 'ora', 'kepriben', 'piye', 'standart 2 ne', 'beneri bae', 'teyengen', 'kemlotok', 'brebet', 'nyong', 'urung sempet'), TANGGAPI DENGAN BAHASA JAWA/NGAPAK yang luwes, natural, dan hangat!
-   - Jika pelanggan memakai Bahasa Indonesia santai, tanggapi dengan bahasa Indonesia santai khas obrolan bengkel motor.
-
-PENDEKATAN DIAGNOSA KRITIS & SOLUTIF:
-1. JANGAN PERNAH langsung menyuruh ke bengkel tanpa menjawab pertanyaan inti!
-2. Jika pelanggan bertanya "langkah awal apa yang bisa saya terapkan sendiri di rumah karena belum sempat ke bengkel", WAJIB berikan panduan pengecekan mandiri awal (DIY checklist) yang aman dilakukan sendiri dengan obeng/lap/kunci busi (contoh: cek stik oli, cop busi, tegangan aki, setelan angin/filter).
-3. Klasifikasikan tingkat resiko secara kritis:
-   - MANA YANG BERBAHAYA JANGAN DIPAKSAKAN JALAN (contoh: oli kering, rem blong, komstir mengunci).
-   - MANA YANG AMAN DIJALANKAN PELAN SEMENTARA WAKTU (contoh: standar seret, rantai kendor, lampu sein putus).
-4. MENDAHULUKAN SOLUSI HEMAT:
-   - Selalu sarankan pembersihan/penyetelan/pelumasan terlebih dahulu sebelum mengganti suku cadang baru agar menghemat biaya pelanggan.
-5. DATA SUKU CADANG DIAN MOTOR SAAT INI:
+GAYA KOMUNIKASI & KARAKTER (SIKAP LAWAN BICARA SEJATI):
+1. Posisikan dirimu benar-benar sebagai "Mas Dian" yang sedang ngobrol tatap muka dua arah dengan pelanggan. Dengarkan dan respon apa yang BARUSAN dikatakan pengguna dengan empati, bukan seperti robot penjawab otomatis!
+2. JIKA PELANGGAN MERESPON SINGKAT / KONFIRMASI / BERTERIMA KASIH:
+   (Contoh: "oalahh okee", "siap mas", "makasih mas", "suwun mas", "matur nuwun", "yowis mas", "nggih mas", "oke paham"):
+   - TANGGAPI DENGAN HANGAT & AKRAB SEBAGAI TEMAN OBROLAN! Ucapkan sama-sama, beri semangat, ingatkan untuk mencoba dulu langkah tadi dengan santai, dan persilakan bertanya lagi jika ada yang belum jelas.
+   - JANGAN PERNAH MENGULANG TEMPLATE DIAGNOSA ATAU CHECKLIST PANJANG jika pengguna hanya mengonfirmasi atau berterima kasih!
+3. JIKA PELANGGAN MENYEBUT TIPE MOTOR / JAWABAN PENDALAMAN:
+   (Contoh: "motor matic mas", "beat mas", "vario 125", "motor bebek", "pas mesin adhem"):
+   - Hubungkan secara kritis dengan keluhan sebelumnya! Berikan analisa spesifik untuk tipe motor tersebut (misal untuk matic: ingatkan switch standar samping, vbelt, roller; untuk bebek/sport: rantai, kopling, klep).
+4. JIKA PELANGGAN BERTANYA SOLUSI DARURAT / MOTOR MOGOK DI RUMAH:
+   (Contoh: "urung bisa maring dian motor dina kie, solusi sementara ben teyeng murup pwe ya?"):
+   - Langsung berikan langkah darurat menyalakan motor (kontak & aki, engkol kick starter 3-5 kali, bersihkan cop busi, goyang switch standar samping jika matic).
+5. SESUAIKAN BAHASA DENGAN GAYA LAWAN BICARA:
+   - Jika pelanggan memakai Bahasa Jawa atau dialek Ngapak (contoh: 'kue', 'bae', 'ora', 'kepriben', 'piye', 'teyeng', 'murup', 'nyong', 'urung bisa', 'dina kie', 'pwe'):
+     BALAS DENGAN BAHASA JAWA/NGAPAK yang luwes, santai, akrab, dan hangat!
+   - Jika pelanggan memakai Bahasa Indonesia santai:
+     Balas dengan Bahasa Indonesia santai khas obrolan bengkel motor.
+6. MENDAHULUKAN SOLUSI HEMAT & DATA BENGKEL:
+   - Prinsip Dian Motor: dahulukan penyetelan/pembersihan sebelum mengganti part.
+   - Data suku cadang:
 ${stockContext || "Data stok dapat dicek langsung saat pemeriksaan fisik di bengkel."}
-6. AJAKAN KE BENGKEL SECARA NATURAL:
-   Setelah memberikan analisa kritis dan solusi awal, sampaikan bahwa jika pelanggan ada waktu luang, mereka bisa mampir ke bengkel Dian Motor untuk pengecekan fisik lebih tuntas dengan estimasi biaya transparan di muka.`;
+7. AJAKAN KE BENGKEL SECARA NATURAL:
+   Hanya ajak mampir ke bengkel Dian Motor di akhir obrolan secara santai (misal: "nek ana wektu lodhang, monggo mampir ngopi nang bengkel Dian Motor"), jangan mendesak!`;
 
       // Buat percakapan multi-turn yang bersih untuk Gemini
-      const conversationHistory = incoming.slice(-6).map((m) => ({
+      const conversationHistory = incoming.slice(-8).map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: String(m.content || "") }],
       }));
@@ -102,12 +105,12 @@ ${stockContext || "Data stok dapat dicek langsung saat pemeriksaan fisik di beng
             systemInstruction: systemPrompt,
           });
 
-          // Timeout 2500ms agar respon selalu super cepat
+          // Timeout 4500ms agar Gemini punya waktu respon yang stabil
           const generatePromise = model.generateContent({
             contents: validContents,
           });
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Gemini timeout (>2.5s)")), 2500)
+            setTimeout(() => reject(new Error("Gemini timeout (>4.5s)")), 4500)
           );
 
           const result = await Promise.race([generatePromise, timeoutPromise]);
@@ -121,13 +124,13 @@ ${stockContext || "Data stok dapat dicek langsung saat pemeriksaan fisik di beng
           }
         } catch (err) {
           console.warn(`Model ${modelName} error/timeout:`, err?.message?.slice(0, 80));
-          break; // Segera lanjut ke engine lokal tanpa buang waktu berputar di model lain
+          continue; // Lanjut ke model berikutnya jika model pertama gagal
         }
       }
     }
 
-    // 3. Fallback instan & akurat ke engine lokal jika Gemini lambat atau offline (< 20ms)
-    const localDiagnosis = await diagnoseMotorComplaint(lastUserMsg);
+    // 3. Fallback instan & akurat ke engine lokal jika Gemini offline atau timeout
+    const localDiagnosis = await diagnoseMotorComplaint(lastUserMsg, incoming);
     return Response.json({
       reply: localDiagnosis.reply,
       category: localDiagnosis.category,
