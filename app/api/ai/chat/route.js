@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_SESSION_COOKIE, decodeDemoSession, isOwner } from "@/lib/demo-auth";
-import { tools, runTool } from "@/lib/ai/tools";
+import { getToolsForRole, runTool } from "@/lib/ai/tools";
 import { answerLocally } from "@/lib/ai/local-answer";
 import { extractStockIntent, normalizeSlang } from "@/lib/ai/slang-dictionary";
 import { checkPromptSafety } from "@/lib/ai/security-guardrails";
@@ -14,10 +14,32 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 function getSystemPrompt(userRole = "kasir") {
   const isOwnerUser = isOwner(userRole);
 
-  const roleInstruction = isOwnerUser
-    ? `Peran Pengguna: OWNER (PEMILIK BENGKEL).
-Pengguna memiliki otoritas tertinggi atas Dian Motor. Kamu diizinkan memberikan ringkasan stok, posisi rak, harga jual, dan analisis ketersediaan inventori bengkel.`
-    : `Peran Pengguna: KASIR (OPERASIONAL).
+  if (isOwnerUser) {
+    return `Kamu adalah Asisten Analis Bisnis, Inventori, & Keuangan khusus OWNER bengkel motor "Dian Motor".
+Peran Pengguna: OWNER (PEMILIK BENGKEL) dengan otoritas penuh atas seluruh data operasional, stok, modal/HPP, omzet, laba, dan laporan keuangan.
+
+GAYA KOMUNIKASI & PENALARAN MENDALAM:
+1. Bersikaplah seperti partner konsultan bisnis & manajer operasional yang cerdas, akrab, luwes, dan siap diajak berdiskusi dua arah (sikap lawan bicara sejati).
+2. JANGAN hanya membacakan angka mentah! Selalu berikan PENALARAN MENDALAM:
+   - Hubungkan kondisi stok dengan potensi omzet (misal: jika banyak barang habis/menipis, soroti risiko *lost sales* / pelanggan batal transaksi).
+   - Evaluasi arus barang masuk vs barang keluar (jika barang keluar tinggi tapi barang masuk 0, ingatkan pencatatan restok).
+   - Evaluasi profitabilitas (HPP vs Omzet vs Laba Kotor & Margin %), komposisi pembayaran (Tunai vs Transfer vs QRIS), dan rata-rata nilai transaksi.
+   - Berikan 2-3 rekomendasi keputusan konkret yang realistis untuk Owner (prioritas kulakan, alokasi modal bertahap, atau strategi *bundling* servis & part).
+3. Jika Owner merespon santai/singkat (seperti "oalah oke", "makasih", "siap"), tanggapi secara hangat & ringkas tanpa mengulang laporan panjang.
+4. Pahami bahasa informal, singkatan, dan dialek Jawa/Ngapak secara natural ("rekap stok bulan ini", "omzet hari ini brp", "keuangan minggu ini gimana", "modal kulakan", "aset gudang").
+
+ATURAN PENGGUNAAN TOOL:
+- Gunakan 'rekap_stok_owner' untuk pertanyaan rekap stok, mutasi barang masuk/keluar, nilai aset gudang, atau estimasi modal restok.
+- Gunakan 'rekap_keuangan_owner' untuk pertanyaan rekap keuangan, omzet, penjualan, laba/profit, metode bayar (QRIS/Tunai/Transfer), atau transaksi.
+- Gunakan 'analisa_bisnis_owner' jika Owner meminta rekap gabungan (stok + keuangan), evaluasi performa bengkel, atau strategi bisnis.
+- Gunakan 'cari_stok' atau 'daftar_stok_kritis' untuk pengecekan suku cadang tertentu atau daftar barang habis/menipis.
+- Selalu sajikan angka dengan format Rupiah (Rp) dan bullet point yang rapi, padat, serta mudah dibaca di layar chat.`;
+  }
+
+  return `Kamu adalah asisten pintar untuk bengkel motor "Dian Motor".
+Tugasmu membantu mengecek ketersediaan suku cadang, posisi rak penyimpanan, dan harga jual barang bengkel.
+
+Peran Pengguna: KASIR (OPERASIONAL).
 ATURAN KEAMANAN DAN PRIVASI OWNER (SANGAT KETAT):
 1. Pengguna saat ini adalah staf KASIR.
 2. DILARANG KERAS memberikan informasi mengenai:
@@ -27,12 +49,7 @@ ATURAN KEAMANAN DAN PRIVASI OWNER (SANGAT KETAT):
    - KREDENSIAL, PASSWORD, MAUPUN TOKEN SISTEM.
 3. Jika kasir menanyakan harga modal, keuntungan, atau omset toko, TOLAK DENGAN RAMAH DAN TEGAS:
    "Maaf, informasi mengenai harga modal/keuntungan/laporan keuangan toko merupakan kebijakan rahasia khusus Owner Dian Motor dan tidak dapat diakses melalui terminal kasir."
-4. Kasir HANYA berhak memantau: Ketersediaan Sisa Stok, Posisi RAK, Status Barang (Aman/Menipis/Habis), dan HARGA JUAL resmi kepada pelanggan.`;
-
-  return `Kamu adalah asisten pintar untuk bengkel motor "Dian Motor".
-Tugasmu membantu mengecek ketersediaan suku cadang, posisi rak penyimpanan, dan harga jual barang bengkel.
-
-${roleInstruction}
+4. Kasir HANYA berhak memantau: Ketersediaan Sisa Stok, Posisi RAK, Status Barang (Aman/Menipis/Habis), dan HARGA JUAL resmi kepada pelanggan.
 
 KEMAMPUAN MEMAHAMI PERCAKAPAN SINGKAT & INFORMAL:
 - Pahami gaya pengetikan chatting cepat, santai, maupun singkatan tanpa perlu menyebut istilah teknis atau mengomentari gaya bicara user:
@@ -101,10 +118,11 @@ function formatStockList(data, originalQuery = "") {
   return headerText + itemsFormatted + totalCount;
 }
 
-async function handleLocalFallback(userMessage, userRole = "kasir") {
+async function handleLocalFallback(userMessage, userRole = "kasir", conversationHistory = [], supabaseClient = null) {
   try {
-    return await answerLocally(userMessage, userRole);
+    return await answerLocally(userMessage, userRole, conversationHistory, supabaseClient);
   } catch (err) {
+    console.warn("handleLocalFallback error:", err?.message);
     return "Terjadi kesalahan saat membaca database stok Dian Motor.";
   }
 }
@@ -113,14 +131,15 @@ export async function POST(request) {
   // 1. Identifikasi User & Role
   let userRole = "kasir";
   let isAuthenticated = false;
+  let supabaseClient = null;
 
   try {
-    const supabase = await createClient();
-    if (supabase) {
-      const { data: auth } = await supabase.auth.getUser();
+    supabaseClient = await createClient();
+    if (supabaseClient) {
+      const { data: auth } = await supabaseClient.auth.getUser();
       if (auth?.user) {
         isAuthenticated = true;
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseClient
           .from("profiles")
           .select("role")
           .eq("id", auth.user.id)
@@ -177,11 +196,17 @@ export async function POST(request) {
 
   if (hasValidGeminiKey) {
     try {
-      const geminiTools = formatToolsForGemini(tools);
-      const contents = incoming.slice(-10).map((m) => ({
+      const roleTools = getToolsForRole(userRole);
+      const geminiTools = formatToolsForGemini(roleTools);
+      const rawContents = incoming.slice(-10).map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: String(m.content || "") }],
       }));
+      const contents = [];
+      for (const item of rawContents) {
+        if (contents.length === 0 && item.role !== "user") continue;
+        contents.push(item);
+      }
 
       // Tambahkan konteks pemahaman jika mengandung singkatan
       if (normalizedQuery !== lastUserMsg.toLowerCase()) {
@@ -219,7 +244,10 @@ export async function POST(request) {
 
           if (functionCalls && functionCalls.length > 0) {
             const call = functionCalls[0];
-            let output = await runTool(call.name, call.args);
+            let output = await runTool(call.name, call.args, {
+              supabase: supabaseClient,
+              userRole,
+            });
 
             if (!output || (Array.isArray(output) && output.length === 0)) {
               output = { status: "not_found", message: "Barang tidak ditemukan di database stok." };
@@ -232,7 +260,10 @@ export async function POST(request) {
             });
 
             const finalPromise = model.generateContent({ contents });
-            const finalResult = await Promise.race([finalPromise, timeoutPromise]);
+            const finalTimeout = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Timeout Gemini Tool Reply (>4.5s)")), 4500)
+            );
+            const finalResult = await Promise.race([finalPromise, finalTimeout]);
             responseText = finalResult.response.text();
           } else {
             responseText = response.text();
@@ -246,20 +277,20 @@ export async function POST(request) {
       }
 
       if (!responseText) {
-        responseText = await handleLocalFallback(lastUserMsg, userRole);
+        responseText = await handleLocalFallback(lastUserMsg, userRole, incoming, supabaseClient);
       }
 
       return Response.json({ reply: responseText });
     } catch (globalError) {
       console.warn("Global Gemini error, fallback ke lokal:", globalError?.message);
-      const fallbackReply = await handleLocalFallback(lastUserMsg, userRole);
+      const fallbackReply = await handleLocalFallback(lastUserMsg, userRole, incoming, supabaseClient);
       return Response.json({ reply: fallbackReply });
     }
   }
 
-  // 5. Jika tidak ada API key LLM, jawab secara lokal dari database
+  // 5. Jika tidak ada API key LLM, jawab secara lokal dari database (instan & mendalam)
   try {
-    const reply = await handleLocalFallback(lastUserMsg, userRole);
+    const reply = await handleLocalFallback(lastUserMsg, userRole, incoming, supabaseClient);
     return Response.json({ reply });
   } catch (e) {
     console.error("AI lokal error:", e);
