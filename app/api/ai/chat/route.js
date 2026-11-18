@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { DEMO_SESSION_COOKIE, decodeDemoSession, isOwner } from "@/lib/demo-auth";
 import { getToolsForRole, runTool } from "@/lib/ai/tools";
 import { answerLocally } from "@/lib/ai/local-answer";
@@ -131,15 +132,18 @@ export async function POST(request) {
   // 1. Identifikasi User & Role
   let userRole = "kasir";
   let isAuthenticated = false;
+  let hasSupabaseAuthUser = false;
   let supabaseClient = null;
 
   try {
-    supabaseClient = await createClient();
-    if (supabaseClient) {
-      const { data: auth } = await supabaseClient.auth.getUser();
+    const serverClient = await createClient();
+    if (serverClient) {
+      const { data: auth } = await serverClient.auth.getUser();
       if (auth?.user) {
         isAuthenticated = true;
-        const { data: profile } = await supabaseClient
+        hasSupabaseAuthUser = true;
+        supabaseClient = serverClient;
+        const { data: profile } = await serverClient
           .from("profiles")
           .select("role")
           .eq("id", auth.user.id)
@@ -150,6 +154,10 @@ export async function POST(request) {
       }
     }
   } catch (e) {}
+
+  if (!hasSupabaseAuthUser) {
+    supabaseClient = getAdminClient();
+  }
 
   if (!isAuthenticated) {
     try {
